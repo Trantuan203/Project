@@ -1,0 +1,271 @@
+:root {
+  --color-background: 244 247 251;
+  --color-error: 186 26 26;
+  --color-error-container: 255 218 214;
+  --color-inverse-on-surface: 240 241 242;
+  --color-inverse-primary: 173 198 255;
+  --color-inverse-surface: 46 49 50;
+  --color-on-background: 25 28 29;
+  --color-on-error: 255 255 255;
+  --color-on-error-container: 147 0 10;
+  --color-on-primary: 255 255 255;
+  --color-on-primary-container: 254 252 255;
+  --color-on-primary-fixed: 0 26 65;
+  --color-on-primary-fixed-variant: 0 68 147;
+  --color-on-secondary: 255 255 255;
+  --color-on-secondary-container: 0 115 42;
+  --color-on-secondary-fixed: 0 33 7;
+  --color-on-secondary-fixed-variant: 0 83 28;
+  --color-on-surface: 25 28 29;
+  --color-on-surface-variant: 65 71 85;
+  --color-on-tertiary: 255 255 255;
+  --color-on-tertiary-container: 255 251 255;
+  --color-on-tertiary-fixed: 65 0 1;
+  --color-on-tertiary-fixed-variant: 147 0 5;
+  --color-outline: 113 119 134;
+  --color-outline-variant: 193 198 215;
+  --color-primary: 0 88 188;
+  --color-primary-container: 0 112 235;
+  --color-primary-fixed: 216 226 255;
+  --color-primary-fixed-dim: 173 198 255;
+  --color-secondary: 0 110 40;
+  --color-secondary-container: 111 251 133;
+  --color-secondary-fixed: 114 254 136;
+  --color-secondary-fixed-dim: 83 225 111;
+  --color-surface: 248 249 250;
+  --color-surface-bright: 248 249 250;
+  --color-surface-container: 237 238 239;
+  --color-surface-container-high: 231 232 233;
+  --color-surface-container-highest: 225 227 228;
+  --color-surface-container-low: 243 244 245;
+  --color-surface-container-lowest: 255 255 255;
+  --color-surface-dim: 217 218 219;
+  --color-surface-tint: 0 91 193;
+  --color-surface-variant: 225 227 228;
+  --color-tertiary: 188 0 10;
+  --color-tertiary-container: 226 36 31;
+  --color-tertiary-fixed: 255 218 213;
+  --color-tertiary-fixed-dim: 255 180 170;
+
+  --auth-glow: 59 130 246;
+  --auth-glow-soft: 15 23 42;
+  --auth-hero-from: 232 240 255;
+  --auth-hero-to: 248 250 255;
+  --auth-orb: 255 255 255;
+  --auth-orb-border: 255 255 255;
+  --auth-panel: 255 255 255;
+  --shadow-auth: 0 30px 80px rgb(15 23 42 / 0.16);
+  --shadow-soft: 0 18px 45px rgb(15 23 42 / 0.12);
+}
+
+:root[data-theme='dark'] {
+  --color-background: 8 13 22;
+  --color-error: 255 138 128;
+  --color-error-container: 73 12 16;
+  --color-inverse-on-surface: 22 29 39;
+  --color-inverse-primary: 39 91 171;
+  --color-inverse-surface: 232 237 243;
+  --color-on-background: 235 242 249;
+  --color-on-error: 65 0 2;
+  --color-on-error-container: 255 218 214;
+  --color-on-primary: 10 23 48;
+  --color-on-primary-container: 227 238 255;
+  --color-on-primary-fixed: 237 243 255;
+  --color-on-primary-fixed-variant: 177 203 255;
+  --color-on-secondary: 10 32 17;
+  --color-on-secondary-container: 199 255 207;
+  --color-on-secondary-fixed: 4 25 10;
+  --color-on-secondary-fixed-variant: 184 248 193;
+  --color-on-surface: 235 242 249;
+  --color-on-surface-variant: 169 182 199;
+  --color-on-tertiary: 54 7 8;
+  --color-on-tertiary-container: 255 226 223;
+  --color-on-tertiary-fixed: 255 227 223;
+  --color-on-tertiary-fixed-variant: 255 187 181;
+  --color-outline: 118 135 161;
+  --color-outline-variant: 73 88 114;
+  --color-primary: 143 184 255;
+  --color-primary-container: 38 77 146;
+  --color-primary-fixed: 31 58 102;
+  --color-primary-fixed-dim: 73 121 196;
+  --color-secondary: 107 224 132;
+  --color-secondary-container: 56 122 75;
+  --color-secondary-fixed: 116 236 141;
+  --color-secondary-fixed-dim: 76 181 98;
+  --color-surface: 12 18 29;
+  --color-surface-bright: 17 25 39;
+  --color-surface-container: 24 35 53;
+  --color-surface-container-high: 29 43 63;
+  --color-surface-container-highest: 36 52 77;
+  --color-surface-container-low: 19 28 43;
+  --color-surface-container-lowest: 15 22 34;
+  --color-surface-dim: 8 12 20;
+  --color-surface-tint: 143 184 255;
+  --color-surface-variant: 38 52 72;
+  --color-tertiary: 255 138 127;
+  --color-tertiary-container: 111 19 23;
+  --color-tertiary-fixed: 125 44 47;
+  --color-tertiary-fixed-dim: 201 92 87;
+
+  --auth-glow: 56 139 253;
+  --auth-glow-soft: 8 12 20;
+  --auth-hero-from: 14 23 38;
+  --auth-hero-to: 7 14 25;
+  --auth-orb: 22 35 56;
+  --auth-orb-border: 98 122 162;
+  --auth-panel: 12 20 32;
+  --shadow-auth: 0 32px 80px rgb(2 6 23 / 0.45);
+  --shadow-soft: 0 18px 45px rgb(2 6 23 / 0.38);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgb(var(--auth-glow) / 0.1), transparent 28%),
+    linear-gradient(180deg, rgb(var(--color-background)), rgb(var(--color-surface)));
+  color: rgb(var(--color-on-surface));
+  font-family: Inter, 'Segoe UI', sans-serif;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.theme-selector {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-outline-variant) / 0.6);
+  background: rgb(var(--color-surface-container-lowest) / 0.78);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px);
+}
+
+.auth-stage {
+  position: relative;
+}
+
+.auth-shell {
+  box-shadow: var(--shadow-auth);
+}
+
+.auth-hero {
+  background: linear-gradient(145deg, rgb(var(--auth-hero-from)), rgb(var(--auth-hero-to)));
+}
+
+.auth-panel {
+  background: rgb(var(--auth-panel));
+}
+
+.auth-orb {
+  background: rgb(var(--auth-orb) / 0.58);
+  border: 1px solid rgb(var(--auth-orb-border) / 0.38);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    0 28px 50px rgb(var(--auth-glow-soft) / 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.auth-orb-glow {
+  background: rgb(var(--auth-glow) / 0.12);
+}
+
+.auth-input {
+  border: 1px solid rgb(var(--color-outline-variant));
+  background: rgb(var(--color-surface-container-low));
+  color: rgb(var(--color-on-surface));
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.auth-input::placeholder {
+  color: rgb(var(--color-on-surface-variant) / 0.7);
+}
+
+.auth-input:hover {
+  border-color: rgb(var(--color-outline));
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: rgb(var(--color-primary));
+  box-shadow: 0 0 0 4px rgb(var(--color-primary) / 0.14);
+}
+
+.auth-input--error {
+  border-color: rgb(var(--color-error));
+  box-shadow: 0 0 0 4px rgb(var(--color-error) / 0.12);
+}
+
+.auth-submit {
+  box-shadow: 0 20px 40px rgb(var(--color-primary) / 0.26);
+}
+
+.status-banner {
+  display: flex;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  padding: 0.95rem 1rem;
+}
+
+.status-banner--error {
+  border-color: rgb(var(--color-error) / 0.18);
+  background: rgb(var(--color-error-container) / 0.86);
+  color: rgb(var(--color-on-error-container));
+}
+
+.status-banner--info {
+  border-color: rgb(var(--color-primary) / 0.14);
+  background: rgb(var(--color-primary-fixed) / 0.4);
+  color: rgb(var(--color-on-surface));
+}
+
+.status-banner--success {
+  border-color: rgb(var(--color-secondary) / 0.16);
+  background: rgb(var(--color-secondary-container) / 0.26);
+  color: rgb(var(--color-on-surface));
+}
+
+.password-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgb(var(--color-on-surface-variant));
+  transition: color 180ms ease;
+}
+
+.password-rule[data-met='true'] {
+  color: rgb(var(--color-secondary));
+}
