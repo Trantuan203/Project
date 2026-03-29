@@ -1,5 +1,8 @@
 import React, { createContext, useEffect, useState } from 'react';
 
+import { useAuth } from '../hooks/useAuth';
+import { updateSettingsSection } from '../services/settings';
+
 const THEME_STORAGE_KEY = 'kaijumess-theme-mode';
 const ThemeContext = createContext(null);
 
@@ -21,7 +24,8 @@ const getInitialThemeMode = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [themeMode, setThemeMode] = useState(getInitialThemeMode);
+  const { currentUser, updateCurrentUserPreferences } = useAuth();
+  const [themeMode, setThemeModeState] = useState(getInitialThemeMode);
   const [systemTheme, setSystemTheme] = useState(getSystemTheme);
 
   useEffect(() => {
@@ -40,11 +44,42 @@ export const ThemeProvider = ({ children }) => {
   const resolvedTheme = themeMode === 'system' ? systemTheme : themeMode;
 
   useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    const remoteThemeMode = currentUser.preferences?.theme?.mode;
+    setThemeModeState(
+      ['light', 'dark', 'system'].includes(remoteThemeMode) ? remoteThemeMode : 'system',
+    );
+  }, [currentUser?.id, currentUser?.preferences?.theme?.mode]);
+
+  useEffect(() => {
     document.documentElement.dataset.theme = resolvedTheme;
     document.documentElement.dataset.themeMode = themeMode;
     document.documentElement.style.colorScheme = resolvedTheme;
     window.localStorage.setItem(THEME_STORAGE_KEY, themeMode);
   }, [resolvedTheme, themeMode]);
+
+  const setThemeMode = (nextThemeMode) => {
+    if (!['light', 'dark', 'system'].includes(nextThemeMode)) {
+      return;
+    }
+
+    setThemeModeState(nextThemeMode);
+
+    if (!currentUser?.id) {
+      return;
+    }
+
+    void updateSettingsSection('theme', { mode: nextThemeMode })
+      .then((payload) => {
+        updateCurrentUserPreferences('theme', payload.preferences?.theme || { mode: nextThemeMode });
+      })
+      .catch(() => {
+        // Keep local theme changes even if sync is temporarily unavailable.
+      });
+  };
 
   return (
     <ThemeContext.Provider

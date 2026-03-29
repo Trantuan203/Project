@@ -29,7 +29,7 @@ const writeJson = (storageKey, value) => {
   window.localStorage.setItem(storageKey, JSON.stringify(value));
 };
 
-const normalizeUser = (user) => {
+export const normalizeUser = (user) => {
   const fullName = user.display_name || user.full_name || user.username || user.email || 'Kaiju User';
 
   return {
@@ -40,9 +40,15 @@ const normalizeUser = (user) => {
     email: user.email || '',
     identity: user.email || user.username || '',
     avatarUrl: user.avatar_url || '',
+    bio: user.bio || '',
     status: user.status || 'offline',
     lastSeen: user.last_seen || null,
     createdAt: user.created_at || null,
+    updatedAt: user.updated_at || null,
+    preferences:
+      user.preferences && typeof user.preferences === 'object' && !Array.isArray(user.preferences)
+        ? user.preferences
+        : {},
   };
 };
 

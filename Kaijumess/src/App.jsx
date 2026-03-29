@@ -98,15 +98,15 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AppearanceProvider>
-        <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <AppearanceProvider>
           <NotificationCenterProvider>
             <AppRoutes />
           </NotificationCenterProvider>
-        </AuthProvider>
-      </AppearanceProvider>
-    </ThemeProvider>
+        </AppearanceProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
