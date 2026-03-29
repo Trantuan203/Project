@@ -25,6 +25,8 @@ import {
   readStoredTwoFactorSettings,
   updateStoredTwoFactorSettings,
 } from '../../services/security';
+import { updateSettingsSection } from '../../services/settings';
+import { useAuth } from '../../hooks/useAuth';
 
 const PRIVACY_STORAGE_KEY = 'kaijumess-privacy-settings';
 
@@ -124,6 +126,21 @@ const readStoredPrivacyState = () => {
   }
 };
 
+const sanitizePrivacyState = (value = {}) => ({
+  ...defaultPrivacyState,
+  ...value,
+  blockedContacts: Array.isArray(value.blockedContacts)
+    ? value.blockedContacts
+    : defaultPrivacyState.blockedContacts,
+});
+
+const sanitizeTwoFactorSettings = (value = {}) => ({
+  backupCodes: Array.isArray(value.backupCodes) ? value.backupCodes : [],
+  enabled: Boolean(value.enabled),
+  method: value.method === 'email' ? 'email' : 'authenticator',
+  updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : null,
+});
+
 const getVisibilityBadge = (value) => {
   if (value === 'Everyone') {
     return {
@@ -176,6 +193,7 @@ const validatePasswordForm = ({ confirmPassword, currentPassword, nextPassword }
 };
 
 const Privacy = ({ currentUser }) => {
+  const { updateCurrentUserPreferences } = useAuth();
   const currentUserName = currentUser?.fullName || currentUser?.displayName || 'Kaiju User';
   const searchInputRef = useRef(null);
   const searchInputUnlockedRef = useRef(false);
@@ -201,6 +219,15 @@ const Privacy = ({ currentUser }) => {
 
     window.localStorage.setItem(PRIVACY_STORAGE_KEY, JSON.stringify(privacyState));
   }, [privacyState]);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    setPrivacyState(sanitizePrivacyState(currentUser.preferences?.privacy));
+    setTwoFactorSettings(sanitizeTwoFactorSettings(currentUser.preferences?.security));
+  }, [currentUser?.id, currentUser?.preferences?.privacy, currentUser?.preferences?.security]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -318,8 +345,38 @@ const Privacy = ({ currentUser }) => {
     setSearchQuery(event.target.value);
   };
 
+  const persistPrivacySettings = async (nextValue) => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    try {
+      const payload = await updateSettingsSection('privacy', nextValue);
+      updateCurrentUserPreferences('privacy', payload.preferences?.privacy || nextValue);
+    } catch {
+      // Keep local privacy changes even if sync is temporarily unavailable.
+    }
+  };
+
+  const persistSecuritySettings = async (nextValue) => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    try {
+      const payload = await updateSettingsSection('security', nextValue);
+      updateCurrentUserPreferences('security', payload.preferences?.security || nextValue);
+    } catch {
+      // Keep local security mock state even if sync is temporarily unavailable.
+    }
+  };
+
   const updatePrivacyState = (updater, message, type = 'success') => {
-    setPrivacyState((currentValue) => updater(currentValue));
+    setPrivacyState((currentValue) => {
+      const nextValue = updater(currentValue);
+      void persistPrivacySettings(nextValue);
+      return nextValue;
+    });
     setNotice({
       message,
       type,
@@ -340,7 +397,7 @@ const Privacy = ({ currentUser }) => {
         ...currentValueState,
         [settingKey]: nextValue,
       }),
-      `${settingLabel} visibility changed to ${nextValue} and saved locally.`,
+      `${settingLabel} visibility changed to ${nextValue} and synced to your account.`,
     );
   };
 
@@ -441,8 +498,9 @@ const Privacy = ({ currentUser }) => {
     }));
 
     setTwoFactorSettings(nextSettings);
+    void persistSecuritySettings(nextSettings);
     setNotice({
-      message: `Two-factor method da duoc doi sang ${method}.`,
+      message: `Two-factor method da duoc doi sang ${method} trong account settings.`,
       type: 'success',
     });
   };
@@ -462,10 +520,11 @@ const Privacy = ({ currentUser }) => {
     });
 
     setTwoFactorSettings(nextSettings);
+    void persistSecuritySettings(nextSettings);
     setNotice({
       message: nextSettings.enabled
-        ? '2FA da duoc bat trong local security layer. De enforce luc dang nhap van can backend/API.'
-        : '2FA da duoc tat trong local security layer.',
+        ? '2FA mock da duoc bat va gan voi tai khoan nay. De enforce luc dang nhap van can OTP flow that.'
+        : '2FA mock da duoc tat cho tai khoan nay.',
       type: 'success',
     });
   };
@@ -478,8 +537,9 @@ const Privacy = ({ currentUser }) => {
     }));
 
     setTwoFactorSettings(nextSettings);
+    void persistSecuritySettings(nextSettings);
     setNotice({
-      message: 'Backup codes da duoc tao moi tren may nay.',
+      message: 'Backup codes da duoc tao moi va gan voi tai khoan nay.',
       type: 'success',
     });
   };
@@ -538,7 +598,7 @@ const Privacy = ({ currentUser }) => {
           ...currentValue.blockedContacts,
         ],
       }),
-      `${trimmedName} da duoc them vao blocked contacts tren may nay.`,
+      `${trimmedName} da duoc them vao blocked contacts va synced theo tai khoan.`,
     );
 
     setDraftBlockedName('');
@@ -569,8 +629,8 @@ const Privacy = ({ currentUser }) => {
                 Privacy &amp; Security
               </h2>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant md:text-base">
-                Manage who can reach you, how your visibility works, and what stays local on this
-                device.
+                Manage who can reach you, how your visibility works, and what is synced to this
+                account.
               </p>
             </div>
 
@@ -850,7 +910,7 @@ const Privacy = ({ currentUser }) => {
                     <div>
                       <p className="text-sm font-bold text-on-surface">Two-factor status</p>
                       <p className="mt-1 text-sm text-on-surface-variant">
-                        {twoFactorSettings.enabled ? 'Enabled locally' : 'Disabled locally'}
+                        {twoFactorSettings.enabled ? 'Enabled for this account' : 'Disabled for this account'}
                       </p>
                     </div>
 
@@ -878,7 +938,7 @@ const Privacy = ({ currentUser }) => {
                     {
                       key: 'email',
                       label: 'Email Backup',
-                      note: 'Chi la kenh du phong local mock.',
+                      note: 'Kenh du phong cho security mock tren account.',
                     },
                   ].map((method) => {
                     const isActive = twoFactorSettings.method === method.key;
@@ -906,8 +966,8 @@ const Privacy = ({ currentUser }) => {
                     <div>
                       <p className="text-sm font-bold text-on-surface">Recovery Codes</p>
                       <p className="mt-1 text-xs leading-5 text-on-surface-variant">
-                        Luu lai de mo khoa trong local mock. Backend se can neu ban muon enforce 2FA
-                        that o login flow.
+                        Luu lai de mo khoa trong security mock cua tai khoan. De enforce 2FA that o
+                        login flow van can OTP challenge backend.
                       </p>
                     </div>
 
@@ -963,7 +1023,7 @@ const Privacy = ({ currentUser }) => {
                   42.8 GB <span className="text-lg font-medium text-on-surface-variant">of 50 GB</span>
                 </p>
                 <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                  Storage used across the current local mock and connected UI surfaces.
+                  Storage used across the current mock workspace and connected account surfaces.
                 </p>
               </div>
 
@@ -1098,10 +1158,10 @@ const Privacy = ({ currentUser }) => {
                 Security Check
               </h4>
               <p className="mt-3 text-lg font-black tracking-tight text-on-surface">
-                Your local privacy setup is secure.
+                Your account privacy setup is secure.
               </p>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                {currentUserName} is using local privacy preferences, with no failed validation in
+                {currentUserName} is using synced privacy preferences, with no failed validation in
                 this mock flow right now.
               </p>
             </div>
@@ -1116,8 +1176,8 @@ const Privacy = ({ currentUser }) => {
             <div>
               <h4 className="text-sm font-bold text-on-surface">What works now</h4>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                Visibility settings, blocked contacts, password form validation, local 2FA state and
-                privacy snapshot download are working on this machine.
+                Visibility settings, blocked contacts, password change, mock 2FA state and privacy
+                snapshot download are working for this account.
               </p>
             </div>
           </div>
@@ -1129,11 +1189,11 @@ const Privacy = ({ currentUser }) => {
               <LockOutlined />
             </span>
             <div>
-              <h4 className="text-sm font-bold text-on-surface">Backend/API still needed</h4>
+              <h4 className="text-sm font-bold text-on-surface">Still mocked</h4>
               <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                Password change that can endpoint `/api/auth/change-password`. 2FA that can them
-                enrollment, verify OTP va enforce luc login. Block sync va privacy log nhieu thiet bi
-                van can backend/API rieng.
+                2FA van moi o muc settings mock. De dung that can them enrollment secret, verify OTP
+                va enforce luc login. Block user theo tai khoan that cung can flow chon user thay vi
+                nhap ten tu do.
               </p>
             </div>
           </div>

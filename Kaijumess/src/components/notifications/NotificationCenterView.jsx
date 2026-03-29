@@ -179,6 +179,15 @@ const NotificationCenterView = () => {
     });
   };
 
+  const handleNotificationCardKeyDown = (event, notificationId) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    markNotificationRead(notificationId);
+  };
+
   const handleMarkAllAsRead = () => {
     markAllNotificationsRead();
     setNotice({
@@ -332,10 +341,14 @@ const NotificationCenterView = () => {
 
                 <div className="space-y-4">
                   {group.items.map((notification) => (
-                    <button
+                    <div
                       key={notification.id}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => markNotificationRead(notification.id)}
+                      onKeyDown={(event) =>
+                        handleNotificationCardKeyDown(event, notification.id)
+                      }
                       className={`w-full rounded-[30px] p-5 text-left transition-all ${
                         notification.read
                           ? 'bg-surface-container-low opacity-85 hover:opacity-100'
@@ -426,7 +439,7 @@ const NotificationCenterView = () => {
                           ) : null}
                         </div>
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               </section>

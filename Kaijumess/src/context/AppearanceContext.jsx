@@ -2,17 +2,23 @@
 
 import {
   APPEARANCE_STORAGE_KEY,
+  buildWallpaperLayerStyle,
   DEFAULT_FONT_SCALE,
+  DEFAULT_WALLPAPER_BLUR,
   DEFAULT_WALLPAPER_ID,
+  resolveWallpaperBlurOption,
   resolveWallpaperOption,
   sanitizeAppearanceSettings,
 } from '../constants/appearance';
+import { useAuth } from '../hooks/useAuth';
+import { updateSettingsSection } from '../services/settings';
 
 const AppearanceContext = createContext(null);
 
 const getDefaultAppearanceSettings = () =>
   sanitizeAppearanceSettings({
     fontScale: DEFAULT_FONT_SCALE,
+    wallpaperBlur: DEFAULT_WALLPAPER_BLUR,
     wallpaperId: DEFAULT_WALLPAPER_ID,
   });
 
@@ -35,6 +41,7 @@ const getInitialAppearanceSettings = () => {
 };
 
 export const AppearanceProvider = ({ children }) => {
+  const { currentUser, updateCurrentUserPreferences } = useAuth();
   const [appearanceSettings, setAppearanceSettingsState] = useState(getInitialAppearanceSettings);
 
   useEffect(() => {
@@ -56,6 +63,16 @@ export const AppearanceProvider = ({ children }) => {
       // Keep in-memory settings even if local storage rejects them.
     }
   }, [appearanceSettings]);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    setAppearanceSettingsState(
+      sanitizeAppearanceSettings(currentUser.preferences?.appearance || getDefaultAppearanceSettings()),
+    );
+  }, [currentUser?.id, currentUser?.preferences?.appearance]);
 
   useEffect(() => {
     const handleStorage = (event) => {
@@ -80,22 +97,42 @@ export const AppearanceProvider = ({ children }) => {
   }, []);
 
   const setAppearanceSettings = (nextValue) => {
-    setAppearanceSettingsState((currentValue) =>
-      sanitizeAppearanceSettings(
+    setAppearanceSettingsState((currentValue) => {
+      const nextSettings = sanitizeAppearanceSettings(
         typeof nextValue === 'function' ? nextValue(currentValue) : nextValue,
-      ),
-    );
+      );
+
+      if (currentUser?.id) {
+        void updateSettingsSection('appearance', nextSettings)
+          .then((payload) => {
+            updateCurrentUserPreferences(
+              'appearance',
+              payload.preferences?.appearance || nextSettings,
+            );
+          })
+          .catch(() => {
+            // Keep local appearance changes even if sync is temporarily unavailable.
+          });
+      }
+
+      return nextSettings;
+    });
   };
 
   const resolvedWallpaper = resolveWallpaperOption(appearanceSettings);
+  const resolvedWallpaperBlur = resolveWallpaperBlurOption(appearanceSettings.wallpaperBlur);
 
   return (
     <AppearanceContext.Provider
       value={{
         ...appearanceSettings,
         setAppearanceSettings,
+        wallpaperBlurLabel: resolvedWallpaperBlur.label,
         wallpaperLabel: resolvedWallpaper.label,
-        wallpaperStyle: resolvedWallpaper.style,
+        wallpaperStyle: buildWallpaperLayerStyle({
+          style: resolvedWallpaper.style,
+          wallpaperBlur: appearanceSettings.wallpaperBlur,
+        }),
       }}
     >
       {children}

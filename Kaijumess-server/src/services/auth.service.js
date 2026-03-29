@@ -1,6 +1,8 @@
 const argon2 = require('argon2');
+const { randomUUID } = require('crypto');
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/user.model');
+const userSessionModel = require('../models/user-session.model');
 
 const ARGON2_OPTIONS = {
     type: argon2.argon2id,
@@ -119,7 +121,7 @@ const ensureUniqueUsername = async (baseUsername) => {
     throw error;
 };
 
-const signToken = (user) => {
+const signToken = (user, sessionId) => {
     ensureJwtSecret();
 
     return jwt.sign(
@@ -127,6 +129,7 @@ const signToken = (user) => {
             sub: user.id,
             username: user.username,
             email: user.email,
+            sid: sessionId,
         },
         process.env.JWT_SECRET,
         {
@@ -178,7 +181,58 @@ const validateRegisterInput = ({ email, fullName, password }) => {
     }
 };
 
-const register = async (payload) => {
+const validateNewPasswordInput = (newPassword) => {
+    if (!newPassword) {
+        const error = new Error('newPassword is required.');
+        error.code = 'MISSING_NEW_PASSWORD';
+        error.field = 'newPassword';
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (newPassword.length < 8) {
+        const error = new Error('password must be at least 8 characters.');
+        error.code = 'WEAK_PASSWORD';
+        error.field = 'newPassword';
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!hasUppercase(newPassword) || !hasLowercase(newPassword) || !hasNumber(newPassword)) {
+        const error = new Error('password must include uppercase, lowercase and number.');
+        error.code = 'WEAK_PASSWORD';
+        error.field = 'newPassword';
+        error.statusCode = 400;
+        throw error;
+    }
+};
+
+const createMissingSessionsTableError = () => {
+    const error = new Error('Database session storage is not ready. Apply 003_account_sessions.sql first.');
+    error.code = 'SESSION_STORAGE_NOT_READY';
+    error.statusCode = 503;
+    return error;
+};
+
+const createTrackedSession = async ({ ipAddress, userAgent, userId }) => {
+    try {
+        return await userSessionModel.createSession({
+            id: randomUUID(),
+            ipAddress: ipAddress || '',
+            metadata: {},
+            userAgent: userAgent || '',
+            userId,
+        });
+    } catch (error) {
+        if (error?.code === '42P01') {
+            throw createMissingSessionsTableError();
+        }
+
+        throw error;
+    }
+};
+
+const register = async (payload, sessionContext = {}) => {
     const input = normalizeRegisterInput(payload);
     validateRegisterInput(input);
     ensureJwtSecret();
@@ -209,14 +263,19 @@ const register = async (payload) => {
         displayName: input.fullName,
         passwordHash,
     });
+    const session = await createTrackedSession({
+        ipAddress: sessionContext.ipAddress,
+        userAgent: sessionContext.userAgent,
+        userId: user.id,
+    });
 
     return {
         user,
-        token: signToken(user),
+        token: signToken(user, session.id),
     };
 };
 
-const login = async (payload) => {
+const login = async (payload, sessionContext = {}) => {
     const input = normalizeLoginInput(payload);
 
     if (!input.identifier || !input.password) {
@@ -250,10 +309,15 @@ const login = async (payload) => {
     }
 
     const { password_hash, ...publicUser } = user;
+    const session = await createTrackedSession({
+        ipAddress: sessionContext.ipAddress,
+        userAgent: sessionContext.userAgent,
+        userId: publicUser.id,
+    });
 
     return {
         user: publicUser,
-        token: signToken(publicUser),
+        token: signToken(publicUser, session.id),
     };
 };
 
@@ -270,7 +334,57 @@ const getCurrentUser = async (userId) => {
     return user;
 };
 
+const changePassword = async (userId, payload) => {
+    const currentPassword = typeof payload?.currentPassword === 'string' ? payload.currentPassword : '';
+    const newPassword = typeof payload?.newPassword === 'string' ? payload.newPassword : '';
+
+    if (!currentPassword) {
+        const error = new Error('currentPassword is required.');
+        error.code = 'MISSING_CURRENT_PASSWORD';
+        error.field = 'currentPassword';
+        error.statusCode = 400;
+        throw error;
+    }
+
+    validateNewPasswordInput(newPassword);
+
+    if (currentPassword === newPassword) {
+        const error = new Error('new password must be different from the current password.');
+        error.code = 'PASSWORD_UNCHANGED';
+        error.field = 'newPassword';
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const user = await userModel.findByIdWithPassword(userId);
+
+    if (!user) {
+        const error = new Error('User not found.');
+        error.code = 'USER_NOT_FOUND';
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const isPasswordValid = await argon2.verify(user.password_hash, currentPassword);
+
+    if (!isPasswordValid) {
+        const error = new Error('Current password is incorrect.');
+        error.code = 'INVALID_CURRENT_PASSWORD';
+        error.field = 'currentPassword';
+        error.statusCode = 401;
+        throw error;
+    }
+
+    const passwordHash = await argon2.hash(newPassword, ARGON2_OPTIONS);
+    await userModel.updatePasswordHash(userId, passwordHash);
+
+    return {
+        success: true,
+    };
+};
+
 module.exports = {
+    changePassword,
     getCurrentUser,
     login,
     register,

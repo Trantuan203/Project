@@ -4,6 +4,22 @@ export const MAX_FONT_SCALE = 24;
 export const DEFAULT_FONT_SCALE = 16;
 export const CUSTOM_WALLPAPER_ID = 'custom';
 export const MAX_CUSTOM_WALLPAPER_SIZE_BYTES = 1.5 * 1024 * 1024;
+export const WALLPAPER_BLUR_NONE = 'none';
+export const WALLPAPER_BLUR_SOFT = 'soft';
+export const DEFAULT_WALLPAPER_BLUR = WALLPAPER_BLUR_NONE;
+
+export const WALLPAPER_BLUR_OPTIONS = [
+  {
+    id: WALLPAPER_BLUR_NONE,
+    label: 'No blur',
+    blurPx: 0,
+  },
+  {
+    id: WALLPAPER_BLUR_SOFT,
+    label: 'Soft blur',
+    blurPx: 18,
+  },
+];
 
 export const WALLPAPER_PRESETS = [
   {
@@ -57,6 +73,24 @@ export const buildCustomWallpaperStyle = (imageUrl) => ({
   backgroundSize: 'cover',
 });
 
+export const isValidWallpaperBlur = (value) =>
+  WALLPAPER_BLUR_OPTIONS.some((item) => item.id === value);
+
+export const resolveWallpaperBlurOption = (wallpaperBlur) =>
+  WALLPAPER_BLUR_OPTIONS.find((item) => item.id === wallpaperBlur) ??
+  WALLPAPER_BLUR_OPTIONS[0];
+
+export const buildWallpaperLayerStyle = ({ style, wallpaperBlur }) => {
+  const blurOption = resolveWallpaperBlurOption(wallpaperBlur);
+
+  return {
+    ...style,
+    filter: blurOption.blurPx > 0 ? `blur(${blurOption.blurPx}px)` : 'none',
+    transform: blurOption.blurPx > 0 ? 'scale(1.08)' : 'none',
+    transformOrigin: 'center',
+  };
+};
+
 export const sanitizeAppearanceSettings = (value = {}) => {
   const customWallpaperDataUrl = isValidDataUrl(value.customWallpaperDataUrl)
     ? value.customWallpaperDataUrl
@@ -73,6 +107,9 @@ export const sanitizeAppearanceSettings = (value = {}) => {
     customWallpaperDataUrl,
     fontScale: clampFontScale(value.fontScale),
     wallpaperId,
+    wallpaperBlur: isValidWallpaperBlur(value.wallpaperBlur)
+      ? value.wallpaperBlur
+      : DEFAULT_WALLPAPER_BLUR,
   };
 };
 

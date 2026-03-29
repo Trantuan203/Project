@@ -3,19 +3,14 @@
 import {
   NOTIFICATION_CENTER_STORAGE_KEY,
   NOTIFICATION_PREFS_STORAGE_KEY,
+  defaultNotificationPreferences,
+  notificationAlertStyles,
+  notificationSoundPresets,
 } from '../constants/notificationCenter';
 import { useAuth } from '../hooks/useAuth';
+import { updateSettingsSection } from '../services/settings';
 
 const NotificationCenterContext = createContext(null);
-
-const defaultPreferences = {
-  bannersEnabled: false,
-  pushEnabled: true,
-  quietEnd: '08:00',
-  quietModeEnabled: true,
-  quietStart: '22:00',
-  soundPreset: 'Default Chime',
-};
 
 const createInitialNotifications = (currentUserName) => [
   {
@@ -178,30 +173,82 @@ const readStoredCenterState = (currentUserName) => {
 
 const readStoredPreferences = () => {
   if (typeof window === 'undefined') {
-    return defaultPreferences;
+    return defaultNotificationPreferences;
   }
 
   try {
     const rawValue = window.localStorage.getItem(NOTIFICATION_PREFS_STORAGE_KEY);
 
     if (!rawValue) {
-      return defaultPreferences;
+      return defaultNotificationPreferences;
     }
 
     return {
-      ...defaultPreferences,
+      ...defaultNotificationPreferences,
       ...JSON.parse(rawValue),
     };
   } catch {
-    return defaultPreferences;
+    return defaultNotificationPreferences;
   }
 };
 
+const sanitizeNotificationPreferences = (value = {}) => ({
+  alertStyle:
+    typeof value.alertStyle === 'string' &&
+    notificationAlertStyles.includes(value.alertStyle.trim())
+      ? value.alertStyle.trim()
+      : defaultNotificationPreferences.alertStyle,
+  bannersEnabled: Boolean(value.bannersEnabled),
+  groupAlertsEnabled:
+    value.groupAlertsEnabled !== undefined
+      ? Boolean(value.groupAlertsEnabled)
+      : defaultNotificationPreferences.groupAlertsEnabled,
+  inAppSoundsEnabled:
+    value.inAppSoundsEnabled !== undefined
+      ? Boolean(value.inAppSoundsEnabled)
+      : defaultNotificationPreferences.inAppSoundsEnabled,
+  inAppVibrateEnabled:
+    value.inAppVibrateEnabled !== undefined
+      ? Boolean(value.inAppVibrateEnabled)
+      : defaultNotificationPreferences.inAppVibrateEnabled,
+  muteMentionsEnabled:
+    value.muteMentionsEnabled !== undefined
+      ? Boolean(value.muteMentionsEnabled)
+      : defaultNotificationPreferences.muteMentionsEnabled,
+  pushEnabled:
+    value.pushEnabled !== undefined
+      ? Boolean(value.pushEnabled)
+      : defaultNotificationPreferences.pushEnabled,
+  quietEnd:
+    typeof value.quietEnd === 'string' && /^\d{2}:\d{2}$/.test(value.quietEnd)
+      ? value.quietEnd
+      : defaultNotificationPreferences.quietEnd,
+  quietModeEnabled:
+    value.quietModeEnabled !== undefined
+      ? Boolean(value.quietModeEnabled)
+      : defaultNotificationPreferences.quietModeEnabled,
+  quietStart:
+    typeof value.quietStart === 'string' && /^\d{2}:\d{2}$/.test(value.quietStart)
+      ? value.quietStart
+      : defaultNotificationPreferences.quietStart,
+  showPreviews:
+    value.showPreviews !== undefined
+      ? Boolean(value.showPreviews)
+      : defaultNotificationPreferences.showPreviews,
+  soundPreset:
+    typeof value.soundPreset === 'string' &&
+    notificationSoundPresets.includes(value.soundPreset.trim())
+      ? value.soundPreset.trim()
+      : defaultNotificationPreferences.soundPreset,
+});
+
 export const NotificationCenterProvider = ({ children }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, updateCurrentUserPreferences } = useAuth();
   const currentUserName = currentUser?.fullName || currentUser?.displayName || 'Kaiju User';
   const [centerState, setCenterState] = useState(() => readStoredCenterState(currentUserName));
-  const [preferences, setPreferencesState] = useState(readStoredPreferences);
+  const [preferences, setPreferencesState] = useState(() =>
+    sanitizeNotificationPreferences(readStoredPreferences()),
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -219,11 +266,44 @@ export const NotificationCenterProvider = ({ children }) => {
     window.localStorage.setItem(NOTIFICATION_PREFS_STORAGE_KEY, JSON.stringify(preferences));
   }, [preferences]);
 
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    setPreferencesState(
+      sanitizeNotificationPreferences(
+        currentUser.preferences?.notifications || defaultNotificationPreferences,
+      ),
+    );
+  }, [currentUser?.id, currentUser?.preferences?.notifications]);
+
   const setPreferences = (nextValue) => {
-    setPreferencesState((currentValue) => ({
-      ...currentValue,
-      ...(typeof nextValue === 'function' ? nextValue(currentValue) : nextValue),
-    }));
+    setPreferencesState((currentValue) => {
+      const nextPreferences = sanitizeNotificationPreferences(
+        typeof nextValue === 'function'
+          ? nextValue(currentValue)
+          : {
+              ...currentValue,
+              ...nextValue,
+            },
+      );
+
+      if (currentUser?.id) {
+        void updateSettingsSection('notifications', nextPreferences)
+          .then((payload) => {
+            updateCurrentUserPreferences(
+              'notifications',
+              payload.preferences?.notifications || nextPreferences,
+            );
+          })
+          .catch(() => {
+            // Keep local notification preferences even if sync is temporarily unavailable.
+          });
+      }
+
+      return nextPreferences;
+    });
   };
 
   const unreadCount = useMemo(

@@ -1,4 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react';
+import { connectSocket, disconnectSocket } from '../services/socket';
 
 import {
   AUTH_SESSION_STORAGE_KEY,
@@ -36,6 +37,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const user = await fetchCurrentUser();
+        connectSocket(storedToken);
 
         if (isMounted) {
           setCurrentUser(user);
@@ -77,6 +79,7 @@ export const AuthProvider = ({ children }) => {
     const response = await loginUser(credentials);
     setCurrentUser(response.user);
     setIsAuthReady(true);
+    connectSocket(response.token);
     return response;
   };
 
@@ -84,13 +87,42 @@ export const AuthProvider = ({ children }) => {
     const response = await registerUser(payload);
     setCurrentUser(response.user);
     setIsAuthReady(true);
+    connectSocket(response.token);
     return response;
   };
 
   const logout = () => {
     clearStoredSession();
+    disconnectSocket();
     setCurrentUser(null);
     setIsAuthReady(true);
+  };
+
+  const updateCurrentUser = (updater) => {
+    setCurrentUser((currentValue) => {
+      if (!currentValue) {
+        return currentValue;
+      }
+
+      const nextValue =
+        typeof updater === 'function' ? updater(currentValue) : { ...currentValue, ...updater };
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(nextValue));
+      }
+
+      return nextValue;
+    });
+  };
+
+  const updateCurrentUserPreferences = (section, value) => {
+    updateCurrentUser((currentValue) => ({
+      ...currentValue,
+      preferences: {
+        ...(currentValue.preferences || {}),
+        [section]: value,
+      },
+    }));
   };
 
   return (
@@ -102,6 +134,8 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         register,
+        updateCurrentUser,
+        updateCurrentUserPreferences,
       }}
     >
       {children}
