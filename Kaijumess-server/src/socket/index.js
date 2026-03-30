@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const { createRedisConnection, hasRedisConfig } = require('../config/redis');
+const { getAllowedOrigins } = require('../config/origins');
 const { verifyToken } = require('../middlewares/auth.middleware');
 const chatHandler = require('./chat.handler');
 const presenceHandler = require('./presence.handler');
@@ -52,8 +53,19 @@ const attachRedisAdapter = async (io) => {
 };
 
 const initSocket = async (server) => {
+    const allowedOrigins = getAllowedOrigins();
     const io = new Server(server, {
-        cors: { origin: process.env.CLIENT_URL, methods: ['GET', 'POST'] },
+        cors: {
+            methods: ['GET', 'POST'],
+            origin: (origin, callback) => {
+                if (!origin || allowedOrigins.includes(origin)) {
+                    callback(null, true);
+                    return;
+                }
+
+                callback(new Error('Origin not allowed by Socket.io CORS.'));
+            },
+        },
     });
 
     await attachRedisAdapter(io);

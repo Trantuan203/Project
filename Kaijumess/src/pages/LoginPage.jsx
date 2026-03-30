@@ -191,8 +191,147 @@ const LoginPage = () => {
       .trim();
 
   return (
-    <div className="auth-stage relative min-h-screen items-center justify-center p-4 font-body md:flex md:p-8">
-      <main className="auth-shell grid min-h-[760px] w-full max-w-6xl grid-cols-1 overflow-hidden rounded-[32px] bg-surface-container-lowest md:grid-cols-2">
+    <div className="auth-stage relative min-h-screen font-body md:flex md:items-center md:justify-center md:p-8">
+      <div className="md:hidden">
+        <header className="relative flex h-[371px] flex-col items-center justify-end overflow-hidden pb-12 pt-8">
+          <div className="absolute left-[-10%] top-[-10%] h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+          <div className="absolute bottom-[10%] right-[-5%] h-48 w-48 rounded-full bg-secondary/5 blur-3xl" />
+          <div className="relative z-10 mb-6 flex h-40 w-40 items-center justify-center overflow-hidden rounded-full bg-white/35 shadow-[0_16px_40px_rgba(0,88,188,0.08)] backdrop-blur-sm">
+            <div className="h-36 w-36">{lottieObj.View}</div>
+          </div>
+          <div className="relative z-10 px-6 text-center">
+            <h1 className="mb-2 text-4xl font-black tracking-tighter text-on-surface">Welcome Back</h1>
+            <p className="text-lg font-medium text-on-surface-variant">Glad to see you again!</p>
+          </div>
+        </header>
+
+        <main className="relative z-20 min-h-[calc(100vh-371px)] rounded-t-[3rem] bg-surface-container-lowest px-8 pb-12 pt-10 shadow-[0_-12px_40px_rgba(25,28,29,0.04)]">
+          <div className="mb-10 flex items-center justify-center space-x-12">
+            <span className="relative px-2 pb-1 text-lg font-bold text-on-surface after:absolute after:bottom-[-2px] after:left-0 after:right-0 after:h-[3px] after:rounded-full after:bg-primary">
+              Login
+            </span>
+            <Link to="/register" className="px-2 pb-1 text-lg font-semibold text-on-surface-variant transition-colors hover:text-primary">
+              Sign up
+            </Link>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            {submitError ? (
+              <div className="status-banner status-banner--error">
+                <ExclamationCircleFilled className="mt-1 text-base" />
+                <div className="space-y-1">
+                  <p className="font-semibold">Khong the dang nhap</p>
+                  <p className="text-sm leading-6">{submitError}</p>
+                </div>
+              </div>
+            ) : null}
+
+            {socialHint ? (
+              <div className="status-banner status-banner--info">
+                <InfoCircleOutlined className="mt-1 text-base" />
+                <p className="text-sm leading-6">{socialHint}</p>
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <label htmlFor="identity-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
+                Email Address
+              </label>
+              <div className="relative flex items-center">
+                <span className="material-symbols-outlined absolute left-4 text-outline">mail</span>
+                <input
+                  id="identity-mobile"
+                  name="identity"
+                  type="text"
+                  value={form.identity}
+                  onChange={handleChange}
+                  onFocus={handleIdentityFocus}
+                  onBlur={handleFieldBlur}
+                  placeholder="name@example.com"
+                  autoComplete="username"
+                  className={`${inputClassName('identity')} pl-12`}
+                  aria-invalid={Boolean(errors.identity)}
+                />
+              </div>
+              {errors.identity ? <p className="ml-1 text-sm font-semibold text-error">{errors.identity}</p> : null}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
+                Password
+              </label>
+              <div className="relative flex items-center">
+                <span className="material-symbols-outlined absolute left-4 text-outline">lock</span>
+                <input
+                  id="password-mobile"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={handleChange}
+                  onFocus={handlePasswordFocus}
+                  onBlur={handleFieldBlur}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className={`${inputClassName('password')} pl-12 pr-12`}
+                  aria-invalid={Boolean(errors.password)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((currentState) => !currentState)}
+                  className="absolute right-4 text-outline transition-colors hover:text-primary"
+                  aria-label={showPassword ? 'An mat khau' : 'Hien mat khau'}
+                >
+                  {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                </button>
+              </div>
+              {errors.password ? <p className="ml-1 text-sm font-semibold text-error">{errors.password}</p> : null}
+            </div>
+
+            <div className="flex items-center justify-between px-1">
+              <label className="flex cursor-pointer items-center space-x-3 group">
+                <input className="h-5 w-5 rounded border-outline-variant text-primary focus:ring-primary/20 bg-surface-container-highest" type="checkbox" />
+                <span className="text-sm font-medium text-on-surface-variant transition-colors group-hover:text-on-surface">Remember Me</span>
+              </label>
+              <button type="button" className="text-sm font-bold text-primary transition-colors hover:text-primary-container">Forgot Password?</button>
+            </div>
+
+            <div className="space-y-4 pt-4">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="auth-submit inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-lg font-extrabold text-on-primary transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-75"
+              >
+                {isSubmitting ? <LoadingOutlined spin /> : null}
+                <span>{isSubmitting ? 'Dang dang nhap...' : 'Login'}</span>
+                {!isSubmitting ? <span className="material-symbols-outlined">arrow_forward</span> : null}
+              </button>
+
+              <div className="flex items-center py-2">
+                <div className="h-px flex-grow bg-outline-variant/30" />
+                <span className="px-4 text-xs font-bold uppercase tracking-widest text-outline">Or continue with</span>
+                <div className="h-px flex-grow bg-outline-variant/30" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleClick}
+                className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-outline-variant/20 bg-surface-container-low px-5 py-4 text-base font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high"
+              >
+                <GoogleOutlined />
+                Login with Google
+              </button>
+            </div>
+          </form>
+
+          <p className="mt-10 text-center text-sm font-medium text-on-surface-variant">
+            New to Connect?{' '}
+            <Link to="/register" className="font-bold text-primary">Create an account</Link>
+          </p>
+        </main>
+        <div className="h-8 bg-surface-container-lowest" />
+      </div>
+
+      <main className="auth-shell hidden min-h-[760px] w-full max-w-6xl grid-cols-1 overflow-hidden rounded-[32px] bg-surface-container-lowest md:grid md:grid-cols-2">
         <section className="auth-hero relative hidden overflow-hidden p-12 md:flex md:flex-col md:items-center md:justify-center">
           <div className="absolute left-12 top-12 z-20">
             <span className="text-2xl font-black tracking-[-0.08em] text-primary">KAIJUMESS</span>

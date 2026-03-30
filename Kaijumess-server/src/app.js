@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const { getAllowedOrigins } = require('./config/origins');
 const accountRoutes = require('./routes/account.route');
 const authRoutes = require('./routes/auth.route');
 const messageRoutes = require('./routes/message.route');
@@ -8,10 +9,7 @@ const settingsRoutes = require('./routes/settings.route');
 
 const app = express();
 
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+const allowedOrigins = getAllowedOrigins();
 
 app.use(cors({
     origin: (origin, callback) => {

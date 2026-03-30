@@ -204,8 +204,184 @@ const RegisterPage = () => {
   const passwordChecks = getPasswordChecklist(form.password);
 
   return (
-    <div className="auth-stage relative min-h-screen items-center justify-center p-4 font-body md:flex md:p-8">
-      <main className="auth-shell grid min-h-[760px] w-full max-w-6xl grid-cols-1 overflow-hidden rounded-[32px] bg-surface-container-lowest md:grid-cols-2">
+    <div className="auth-stage relative min-h-screen font-body md:flex md:items-center md:justify-center md:p-8">
+      <div className="md:hidden">
+        <header className="relative flex h-[371px] flex-col items-center justify-end overflow-hidden pb-12 pt-8">
+          <div className="absolute left-[-10%] top-[-10%] h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+          <div className="absolute bottom-[10%] right-[-5%] h-48 w-48 rounded-full bg-secondary/5 blur-3xl" />
+          <div className="relative z-10 mb-6 flex h-40 w-40 items-center justify-center overflow-hidden rounded-full bg-white/35 shadow-[0_16px_40px_rgba(0,88,188,0.08)] backdrop-blur-sm">
+            <div className="h-36 w-36">{lottieObj.View}</div>
+          </div>
+          <div className="relative z-10 px-6 text-center">
+            <h1 className="mb-2 text-4xl font-black tracking-tighter text-on-surface">Create Account</h1>
+            <p className="text-lg font-medium text-on-surface-variant">Join KaijuMess in a minute.</p>
+          </div>
+        </header>
+
+        <main className="relative z-20 min-h-[calc(100vh-371px)] rounded-t-[3rem] bg-surface-container-lowest px-8 pb-12 pt-10 shadow-[0_-12px_40px_rgba(25,28,29,0.04)]">
+          <div className="mb-10 flex items-center justify-center space-x-12">
+            <Link to="/login" className="px-2 pb-1 text-lg font-semibold text-on-surface-variant transition-colors hover:text-primary">
+              Login
+            </Link>
+            <span className="relative px-2 pb-1 text-lg font-bold text-on-surface after:absolute after:bottom-[-2px] after:left-0 after:right-0 after:h-[3px] after:rounded-full after:bg-primary">
+              Sign up
+            </span>
+          </div>
+
+          <form onSubmit={handleRegister} className="space-y-5">
+            {submitError ? (
+              <div className="status-banner status-banner--error">
+                <ExclamationCircleFilled className="mt-1 text-base" />
+                <div className="space-y-1">
+                  <p className="font-semibold">Khong the tao tai khoan</p>
+                  <p className="text-sm leading-6">{submitError}</p>
+                </div>
+              </div>
+            ) : null}
+
+            {!submitError && submitHint ? (
+              <div className="status-banner status-banner--info">
+                <InfoCircleOutlined className="mt-1 text-base" />
+                <p className="text-sm leading-6">{submitHint}</p>
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <label htmlFor="fullName-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
+                Full Name
+              </label>
+              <div className="relative flex items-center">
+                <span className="material-symbols-outlined absolute left-4 text-outline">person</span>
+                <input
+                  id="fullName-mobile"
+                  name="fullName"
+                  type="text"
+                  value={form.fullName}
+                  onChange={handleChange}
+                  onFocus={handleNormalFocus}
+                  onBlur={handleFieldBlur}
+                  placeholder="Nguyen Van A"
+                  autoComplete="name"
+                  className={`${inputClassName('fullName')} pl-12`}
+                  aria-invalid={Boolean(errors.fullName)}
+                />
+              </div>
+              {errors.fullName ? <p className="ml-1 text-sm font-semibold text-error">{errors.fullName}</p> : null}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="identity-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
+                Email Address
+              </label>
+              <div className="relative flex items-center">
+                <span className="material-symbols-outlined absolute left-4 text-outline">mail</span>
+                <input
+                  id="identity-mobile"
+                  name="identity"
+                  type="email"
+                  value={form.identity}
+                  onChange={handleChange}
+                  onFocus={handleNormalFocus}
+                  onBlur={handleFieldBlur}
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                  className={`${inputClassName('identity')} pl-12`}
+                  aria-invalid={Boolean(errors.identity)}
+                />
+              </div>
+              {errors.identity ? <p className="ml-1 text-sm font-semibold text-error">{errors.identity}</p> : null}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
+                Password
+              </label>
+              <div className="relative flex items-center">
+                <span className="material-symbols-outlined absolute left-4 text-outline">lock</span>
+                <input
+                  id="password-mobile"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={handleChange}
+                  onFocus={handlePasswordFocus}
+                  onBlur={handleFieldBlur}
+                  placeholder="Create a strong password"
+                  autoComplete="new-password"
+                  className={`${inputClassName('password')} pl-12 pr-14`}
+                  aria-invalid={Boolean(errors.password)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((currentState) => !currentState)}
+                  className="absolute right-4 text-outline transition-colors hover:text-primary"
+                  aria-label={showPassword ? 'An mat khau' : 'Hien mat khau'}
+                >
+                  {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                </button>
+              </div>
+              <div className="grid gap-2 rounded-2xl bg-surface-container-low px-4 py-3">
+                {passwordChecks.map((rule) => (
+                  <div key={rule.key} className="password-rule" data-met={rule.met}>
+                    <CheckCircleFilled className="text-sm" />
+                    <span>{rule.label}</span>
+                  </div>
+                ))}
+              </div>
+              {errors.password ? <p className="ml-1 text-sm font-semibold text-error">{errors.password}</p> : null}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
+                Confirm Password
+              </label>
+              <div className="relative flex items-center">
+                <span className="material-symbols-outlined absolute left-4 text-outline">verified_user</span>
+                <input
+                  id="confirmPassword-mobile"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  onFocus={handlePasswordFocus}
+                  onBlur={handleFieldBlur}
+                  placeholder="Repeat your password"
+                  autoComplete="new-password"
+                  className={`${inputClassName('confirmPassword')} pl-12 pr-14`}
+                  aria-invalid={Boolean(errors.confirmPassword)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((currentState) => !currentState)}
+                  className="absolute right-4 text-outline transition-colors hover:text-primary"
+                  aria-label={showConfirmPassword ? 'An mat khau xac nhan' : 'Hien mat khau xac nhan'}
+                >
+                  {showConfirmPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                </button>
+              </div>
+              {errors.confirmPassword ? <p className="ml-1 text-sm font-semibold text-error">{errors.confirmPassword}</p> : null}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="auth-submit inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-lg font-extrabold text-on-primary transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-75"
+            >
+              {isSubmitting ? <LoadingOutlined spin /> : null}
+              <span>{isSubmitting ? 'Dang tao tai khoan...' : 'Create account'}</span>
+              {!isSubmitting ? <span className="material-symbols-outlined">arrow_forward</span> : null}
+            </button>
+
+            <p className="pt-2 text-center text-sm text-on-surface-variant">
+              Already have an account?{' '}
+              <Link to="/login" className="font-bold text-primary">Login</Link>
+            </p>
+          </form>
+        </main>
+        <div className="h-8 bg-surface-container-lowest" />
+      </div>
+
+      <main className="auth-shell hidden min-h-[760px] w-full max-w-6xl grid-cols-1 overflow-hidden rounded-[32px] bg-surface-container-lowest md:grid md:grid-cols-2">
         <section className="auth-hero relative hidden overflow-hidden p-12 md:flex md:flex-col md:items-center md:justify-center">
           <div className="absolute left-12 top-12 z-20">
             <span className="text-2xl font-black tracking-[-0.08em] text-primary">KAIJUMESS</span>
