@@ -7,6 +7,7 @@ const DEFAULT_WALLPAPER_ID = 'sapphire';
 const MAX_BLOCKED_CONTACTS = 100;
 const MAX_BACKUP_CODES = 12;
 const VALID_THEME_MODES = ['light', 'dark', 'system'];
+const VALID_LANGUAGE_CODES = ['vi', 'en', 'es', 'fr', 'de', 'ja'];
 const VALID_VISIBILITY_VALUES = ['Everyone', 'My Contacts', 'Nobody'];
 const VALID_TWO_FACTOR_METHODS = ['authenticator', 'email'];
 
@@ -23,6 +24,9 @@ const defaultPreferences = {
         quietModeEnabled: true,
         quietStart: '22:00',
         soundPreset: 'Default Chime',
+    },
+    localization: {
+        language: 'vi',
     },
     privacy: {
         blockedContacts: [],
@@ -70,6 +74,12 @@ const sanitizeString = (value, fallbackValue = '', maxLength = 255) => (
 
 const sanitizeThemeSettings = (value = {}) => ({
     mode: VALID_THEME_MODES.includes(value.mode) ? value.mode : defaultPreferences.theme.mode,
+});
+
+const sanitizeLocalizationSettings = (value = {}) => ({
+    language: VALID_LANGUAGE_CODES.includes(value.language)
+        ? value.language
+        : defaultPreferences.localization.language,
 });
 
 const sanitizeAppearanceSettings = (value = {}) => ({
@@ -154,6 +164,7 @@ const sanitizePreferences = (value = {}) => {
     return {
         appearance: sanitizeAppearanceSettings(safeValue.appearance),
         notifications: sanitizeNotificationSettings(safeValue.notifications),
+        localization: sanitizeLocalizationSettings(safeValue.localization),
         privacy: sanitizePrivacySettings(safeValue.privacy),
         security: sanitizeSecuritySettings(safeValue.security),
         theme: sanitizeThemeSettings(safeValue.theme),
@@ -200,11 +211,13 @@ const updateSettingsSection = async (userId, section, value) => {
         [section]:
             section === 'theme'
                 ? sanitizeThemeSettings(mergedSectionValue)
-                : section === 'appearance'
-                    ? sanitizeAppearanceSettings(mergedSectionValue)
+                    : section === 'appearance'
+                        ? sanitizeAppearanceSettings(mergedSectionValue)
                     : section === 'notifications'
                         ? sanitizeNotificationSettings(mergedSectionValue)
-                        : section === 'privacy'
+                    : section === 'localization'
+                        ? sanitizeLocalizationSettings(mergedSectionValue)
+                    : section === 'privacy'
                             ? sanitizePrivacySettings(mergedSectionValue)
                             : sanitizeSecuritySettings(mergedSectionValue),
     };

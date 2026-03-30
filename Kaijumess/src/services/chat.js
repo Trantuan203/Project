@@ -41,6 +41,18 @@ export const fetchFriends = async ({ limit = 20, offset = 0, query = '' } = {}) 
   return apiRequest(`/api/rooms/friends?${params.toString()}`, buildAuthOptions());
 };
 
+export const fetchPendingFriendRequests = async ({ direction = 'incoming', query = '' } = {}) => {
+  const params = new URLSearchParams();
+
+  params.set('direction', direction);
+
+  if (query) {
+    params.set('q', query);
+  }
+
+  return apiRequest(`/api/rooms/friend-requests?${params.toString()}`, buildAuthOptions());
+};
+
 export const fetchCalls = async ({ date = '', limit = 15, offset = 0, query = '' } = {}) => {
   const params = new URLSearchParams();
 
@@ -101,6 +113,15 @@ export const updateParticipantNickname = async ({ conversationId, nickname, targ
     buildAuthOptions({
       method: 'PATCH',
       body: JSON.stringify({ nickname }),
+    }),
+  );
+
+export const updateConversationWallpaper = async ({ conversationId, wallpaperId }) =>
+  apiRequest(
+    `/api/rooms/${conversationId}/wallpaper`,
+    buildAuthOptions({
+      method: 'PATCH',
+      body: JSON.stringify({ wallpaperId }),
     }),
   );
 

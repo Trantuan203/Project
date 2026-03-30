@@ -13,6 +13,7 @@ import {
   notificationAlertStyles,
   notificationSoundPresets,
 } from '../../constants/notificationCenter';
+import { useLanguage } from '../../context/LanguageContext';
 import { useNotificationCenter } from '../../hooks/useNotificationCenter';
 
 const Toggle = ({ checked, onChange }) => (
@@ -60,6 +61,7 @@ const NotificationsMobile = ({
   feedback,
   notificationPreferences,
   resetPreferences,
+  t,
   unreadCount,
   updatePreferences,
 }) => {
@@ -71,8 +73,8 @@ const NotificationsMobile = ({
         <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary-container opacity-90" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.22),transparent_22%),radial-gradient(circle_at_75%_28%,rgba(255,255,255,0.16),transparent_24%),radial-gradient(circle_at_55%_72%,rgba(255,255,255,0.12),transparent_28%)] mix-blend-screen" />
         <div className="relative flex h-full flex-col justify-end p-6 text-white">
-          <p className="text-sm uppercase tracking-widest opacity-80">Personalize</p>
-          <h2 className="text-3xl font-bold tracking-tight">Notifications</h2>
+          <p className="text-sm uppercase tracking-widest opacity-80">{t('settings.notificationsHero')}</p>
+          <h2 className="text-3xl font-bold tracking-tight">{t('settings.notifications')}</h2>
           <p className="mt-2 text-sm text-white/80">
             {unreadCount} unread items are still surfaced in the bell center.
           </p>
@@ -90,9 +92,9 @@ const NotificationsMobile = ({
 
       <section className="space-y-4">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-lg font-bold text-on-surface">Message Notifications</h3>
+          <h3 className="text-lg font-bold text-on-surface">{t('settings.messageNotifications')}</h3>
           <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-            {notificationsActive ? 'Active' : 'Muted'}
+            {notificationsActive ? t('settings.active') : t('settings.muted')}
           </span>
         </div>
 
@@ -103,8 +105,8 @@ const NotificationsMobile = ({
                 <span className="material-symbols-outlined text-primary">chat_bubble</span>
               </div>
               <div>
-                <p className="font-semibold text-on-surface">Show Previews</p>
-                <p className="text-sm text-on-surface-variant">Display message text in alerts</p>
+                <p className="font-semibold text-on-surface">{t('settings.showPreviews')}</p>
+                <p className="text-sm text-on-surface-variant">{t('settings.displayMessageText')}</p>
               </div>
             </div>
 
@@ -122,7 +124,7 @@ const NotificationsMobile = ({
           </div>
 
           <div className="space-y-4 rounded-[1.5rem] bg-surface-container-lowest p-5">
-            <p className="text-sm font-semibold text-on-surface">Alert Style</p>
+            <p className="text-sm font-semibold text-on-surface">{t('settings.alertStyle')}</p>
             <div className="hide-scrollbar flex gap-2 overflow-x-auto pb-2">
               {notificationAlertStyles.map((style) => {
                 const isSelected = notificationPreferences.alertStyle === style;
@@ -157,16 +159,16 @@ const NotificationsMobile = ({
       </section>
 
       <section className="space-y-4">
-        <h3 className="px-1 text-lg font-bold text-on-surface">Group Notifications</h3>
+        <h3 className="px-1 text-lg font-bold text-on-surface">{t('settings.groupNotifications')}</h3>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-4 rounded-[1.5rem] bg-surface-container-lowest p-5">
             <span className="material-symbols-outlined text-3xl text-secondary">group</span>
             <div>
-              <p className="font-bold text-on-surface">Group Alerts</p>
-              <p className="mt-1 text-xs text-on-surface-variant">
-                Receive alerts for new messages
-              </p>
+                <p className="font-bold text-on-surface">{t('settings.groupAlerts')}</p>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  {t('settings.groupAlertsDesc')}
+                </p>
             </div>
             <div className="mt-auto">
               <MobileToggle
@@ -189,10 +191,10 @@ const NotificationsMobile = ({
               notifications_paused
             </span>
             <div>
-              <p className="font-bold text-on-surface">Mute Mentions</p>
-              <p className="mt-1 text-xs text-on-surface-variant">
-                Ignore @notifications in groups
-              </p>
+                <p className="font-bold text-on-surface">{t('settings.muteMentions')}</p>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  {t('settings.muteMentionsDesc')}
+                </p>
             </div>
             <div className="mt-auto">
               <MobileToggle
@@ -213,13 +215,13 @@ const NotificationsMobile = ({
       </section>
 
       <section className="space-y-4">
-        <h3 className="px-1 text-lg font-bold text-on-surface">App Sounds &amp; Haptics</h3>
+        <h3 className="px-1 text-lg font-bold text-on-surface">{t('settings.appSounds')}</h3>
 
         <div className="overflow-hidden rounded-[1.5rem] bg-surface-container-lowest">
           <div className="flex items-center justify-between border-b border-surface-container/50 p-5">
             <div className="flex items-center gap-4">
               <span className="material-symbols-outlined text-on-surface-variant">volume_up</span>
-              <span className="font-medium">In-App Sounds</span>
+               <span className="font-medium">{t('settings.inAppSounds')}</span>
             </div>
             <Toggle
               checked={notificationPreferences.inAppSoundsEnabled}
@@ -237,7 +239,7 @@ const NotificationsMobile = ({
           <div className="flex items-center justify-between p-5">
             <div className="flex items-center gap-4">
               <span className="material-symbols-outlined text-on-surface-variant">vibration</span>
-              <span className="font-medium">In-App Vibrate</span>
+               <span className="font-medium">{t('settings.inAppVibrate')}</span>
             </div>
             <Toggle
               checked={notificationPreferences.inAppVibrateEnabled}
@@ -525,6 +527,7 @@ const NotificationsDesktop = ({
 );
 
 const Notifications = () => {
+  const { t } = useLanguage();
   const [feedback, setFeedback] = useState(null);
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === 'undefined') {
@@ -589,10 +592,11 @@ const Notifications = () => {
       notificationPreferences,
       resetPreferences,
       setFeedback,
+      t,
       unreadCount,
       updatePreferences,
     }),
-    [feedback, notificationPreferences, unreadCount],
+    [feedback, notificationPreferences, t, unreadCount],
   );
 
   return isMobileViewport ? (

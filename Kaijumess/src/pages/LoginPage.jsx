@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLottie } from 'lottie-react';
 
 import rabbitAnimData from '../assets/Rabit-Sleep.json';
+import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../hooks/useAuth';
 import {
   validateLoginIdentity,
@@ -42,6 +43,7 @@ const getLoginErrors = (form) => {
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { login } = useAuth();
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
@@ -200,18 +202,18 @@ const LoginPage = () => {
             <div className="h-36 w-36">{lottieObj.View}</div>
           </div>
           <div className="relative z-10 px-6 text-center">
-            <h1 className="mb-2 text-4xl font-black tracking-tighter text-on-surface">Welcome Back</h1>
-            <p className="text-lg font-medium text-on-surface-variant">Glad to see you again!</p>
+            <h1 className="mb-2 text-4xl font-black tracking-tighter text-on-surface">{t('auth.welcomeBack')}</h1>
+            <p className="text-lg font-medium text-on-surface-variant">{t('auth.welcomeHint')}</p>
           </div>
         </header>
 
         <main className="relative z-20 min-h-[calc(100vh-371px)] rounded-t-[3rem] bg-surface-container-lowest px-8 pb-12 pt-10 shadow-[0_-12px_40px_rgba(25,28,29,0.04)]">
           <div className="mb-10 flex items-center justify-center space-x-12">
             <span className="relative px-2 pb-1 text-lg font-bold text-on-surface after:absolute after:bottom-[-2px] after:left-0 after:right-0 after:h-[3px] after:rounded-full after:bg-primary">
-              Login
+              {t('auth.login')}
             </span>
             <Link to="/register" className="px-2 pb-1 text-lg font-semibold text-on-surface-variant transition-colors hover:text-primary">
-              Sign up
+              {t('auth.signUp')}
             </Link>
           </div>
 
@@ -235,7 +237,7 @@ const LoginPage = () => {
 
             <div className="space-y-2">
               <label htmlFor="identity-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
-                Email Address
+                {t('auth.emailAddress')}
               </label>
               <div className="relative flex items-center">
                 <span className="material-symbols-outlined absolute left-4 text-outline">mail</span>
@@ -258,7 +260,7 @@ const LoginPage = () => {
 
             <div className="space-y-2">
               <label htmlFor="password-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative flex items-center">
                 <span className="material-symbols-outlined absolute left-4 text-outline">lock</span>
@@ -290,9 +292,9 @@ const LoginPage = () => {
             <div className="flex items-center justify-between px-1">
               <label className="flex cursor-pointer items-center space-x-3 group">
                 <input className="h-5 w-5 rounded border-outline-variant text-primary focus:ring-primary/20 bg-surface-container-highest" type="checkbox" />
-                <span className="text-sm font-medium text-on-surface-variant transition-colors group-hover:text-on-surface">Remember Me</span>
+                <span className="text-sm font-medium text-on-surface-variant transition-colors group-hover:text-on-surface">{t('auth.rememberMe')}</span>
               </label>
-              <button type="button" className="text-sm font-bold text-primary transition-colors hover:text-primary-container">Forgot Password?</button>
+              <button type="button" className="text-sm font-bold text-primary transition-colors hover:text-primary-container">{t('auth.forgotPassword')}</button>
             </div>
 
             <div className="space-y-4 pt-4">
@@ -302,7 +304,7 @@ const LoginPage = () => {
                 className="auth-submit inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-lg font-extrabold text-on-primary transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-75"
               >
                 {isSubmitting ? <LoadingOutlined spin /> : null}
-                <span>{isSubmitting ? 'Dang dang nhap...' : 'Login'}</span>
+                <span>{isSubmitting ? 'Dang dang nhap...' : t('auth.login')}</span>
                 {!isSubmitting ? <span className="material-symbols-outlined">arrow_forward</span> : null}
               </button>
 
@@ -318,14 +320,14 @@ const LoginPage = () => {
                 className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-outline-variant/20 bg-surface-container-low px-5 py-4 text-base font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high"
               >
                 <GoogleOutlined />
-                Login with Google
+                {t('auth.loginGoogle')}
               </button>
             </div>
           </form>
 
           <p className="mt-10 text-center text-sm font-medium text-on-surface-variant">
             New to Connect?{' '}
-            <Link to="/register" className="font-bold text-primary">Create an account</Link>
+            <Link to="/register" className="font-bold text-primary">{t('auth.createAccount')}</Link>
           </p>
         </main>
         <div className="h-8 bg-surface-container-lowest" />
@@ -345,10 +347,10 @@ const LoginPage = () => {
 
             <div className="space-y-4">
               <h1 className="text-4xl font-extrabold tracking-tight text-on-surface">
-                Chao mung tro lai
+                {t('auth.welcomeBack')}
               </h1>
               <p className="text-lg leading-relaxed text-on-surface-variant">
-                Dang nhap de dong bo tin nhan va du lieu tai khoan cua ban tren KaijuMess.
+                {t('auth.welcomeHint')}
               </p>
             </div>
           </div>
@@ -359,12 +361,12 @@ const LoginPage = () => {
             <span className="md:hidden text-2xl font-black tracking-[-0.08em] text-primary">
               KAIJUMESS
             </span>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-on-surface-variant">
-              Dang nhap
-            </p>
-            <h2 className="text-3xl font-black tracking-tight text-on-surface md:text-[2.5rem]">
-              Tiep tuc cung KaijuMess
-            </h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-on-surface-variant">
+              {t('auth.login')}
+              </p>
+              <h2 className="text-3xl font-black tracking-tight text-on-surface md:text-[2.5rem]">
+              {t('auth.login')}
+              </h2>
             <p className="max-w-md text-sm leading-6 text-on-surface-variant">
               Frontend nay da duoc noi vao backend auth that. Ban co the dang nhap bang email hoac username.
             </p>
@@ -393,7 +395,7 @@ const LoginPage = () => {
                 htmlFor="identity"
                 className="ml-1 text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant"
               >
-                Email hoac username
+                {t('auth.emailAddress')}
               </label>
               <input
                 id="identity"
@@ -421,7 +423,7 @@ const LoginPage = () => {
                 htmlFor="password"
                 className="ml-1 text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant"
               >
-                Mat khau
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <input
@@ -460,7 +462,7 @@ const LoginPage = () => {
               className="auth-submit inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-primary px-5 py-4 text-base font-bold text-on-primary transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-wait disabled:opacity-75 disabled:hover:translate-y-0"
             >
               {isSubmitting ? <LoadingOutlined spin /> : null}
-              {isSubmitting ? 'Dang dang nhap...' : 'Dang nhap'}
+              {isSubmitting ? 'Dang dang nhap...' : t('auth.login')}
             </button>
 
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-on-surface-variant">
@@ -475,7 +477,7 @@ const LoginPage = () => {
               className="inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest px-5 py-4 text-base font-semibold text-on-surface transition-colors duration-200 hover:border-primary hover:bg-surface-container-high"
             >
               <GoogleOutlined />
-              Dang nhap voi Google
+              {t('auth.loginGoogle')}
               <span className="rounded-full bg-surface-container-high px-2 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">
                 sap co
               </span>

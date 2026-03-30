@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 
 import MobileMessagesLayout from '../mobile/MobileMessagesLayout';
 import { getScaledFontSize } from '../../constants/appearance';
+import { useLanguage } from '../../context/LanguageContext';
 import { useAppearance } from '../../hooks/useAppearance';
 
 const formatConversationTime = (value) => {
@@ -41,8 +42,22 @@ const getPeoplePanelLabel = (source) => {
     return 'People Directory';
   }
 
+  if (source === 'sent') {
+    return 'Sent Requests';
+  }
+
+  if (source === 'received') {
+    return 'Friend Requests';
+  }
+
   return 'Recent Friends';
 };
+
+const peopleFilters = [
+  { key: 'friends', label: 'Da la ban' },
+  { key: 'sent', label: 'Da gui' },
+  { key: 'received', label: 'Loi moi' },
+];
 
 const getNoticeTone = (type) => {
   if (type === 'error') {
@@ -83,10 +98,13 @@ const ConversationList = ({
   onStartDirectRoom,
   onUserSearchChange,
   peoplePanelState,
+  peopleFilter,
   peopleSearchQuery,
+  onPeopleFilterChange,
   unreadCount = 0,
 }) => {
   const { fontScale } = useAppearance();
+  const { t } = useLanguage();
 
   const searchSize = getScaledFontSize(fontScale, 14, 13);
   const nameSize = getScaledFontSize(fontScale, 15, 13);
@@ -136,7 +154,9 @@ const ConversationList = ({
         onStartDirectRoom={onStartDirectRoom}
         onUserSearchChange={onUserSearchChange}
         peoplePanelState={peoplePanelState}
+        peopleFilter={peopleFilter}
         peopleSearchQuery={peopleSearchQuery}
+        onPeopleFilterChange={onPeopleFilterChange}
         unreadCount={unreadCount}
       />
 
@@ -158,9 +178,9 @@ const ConversationList = ({
 
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">
-                Inbox
+                {t('app.inbox')}
               </p>
-              <h1 className="truncate text-2xl font-black tracking-tight text-primary">Messages</h1>
+              <h1 className="truncate text-2xl font-black tracking-tight text-primary">{t('app.messages')}</h1>
             </div>
           </div>
 
@@ -169,7 +189,7 @@ const ConversationList = ({
               type="button"
               onClick={onOpenNotifications}
               className="relative rounded-full p-3 text-on-surface-variant transition-colors hover:bg-slate-100/70 hover:text-primary"
-              aria-label="Notifications"
+              aria-label={t('app.notifications')}
             >
               <span className="material-symbols-outlined text-[28px]">notifications</span>
               {unreadCount > 0 ? (
@@ -186,7 +206,7 @@ const ConversationList = ({
             <span className="material-symbols-outlined text-[20px] text-outline">search</span>
             <input
               className="w-full border-none bg-transparent text-on-surface outline-none placeholder:text-on-surface-variant/70"
-              placeholder="Search messages..."
+              placeholder={t('app.searchMessages')}
               type="text"
               value={conversationSearch}
               onChange={(event) => onConversationSearchChange(event.target.value)}
@@ -331,7 +351,7 @@ const ConversationList = ({
             className="flex min-w-[68px] flex-col items-center justify-center px-4 py-2 text-on-surface-variant transition-colors hover:text-primary"
           >
             <span className="material-symbols-outlined text-[20px]">group</span>
-            <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em]">People</span>
+            <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em]">{t('app.people')}</span>
           </button>
 
           <button
@@ -340,7 +360,7 @@ const ConversationList = ({
             className="flex min-w-[68px] flex-col items-center justify-center px-4 py-2 text-on-surface-variant transition-colors hover:text-primary"
           >
             <span className="material-symbols-outlined text-[20px]">settings</span>
-            <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em]">Settings</span>
+            <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em]">{t('app.settings')}</span>
           </button>
         </div>
       </nav>
@@ -351,10 +371,10 @@ const ConversationList = ({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.22em] text-on-surface-variant">
-                  Find People
+                  {t('people.findPeople')}
                 </p>
                 <h3 className="mt-2 text-xl font-black tracking-tight text-on-surface">
-                  Search by name or email
+                  {t('people.searchByNameOrEmail')}
                 </h3>
               </div>
               <button
@@ -373,12 +393,24 @@ const ConversationList = ({
                 type="text"
                 value={peopleSearchQuery}
                 onChange={(event) => onUserSearchChange(event.target.value)}
-                placeholder="Enter full name, username or email"
+                placeholder={t('people.searchPlaceholder')}
                 className="w-full border-none bg-transparent text-on-surface outline-none placeholder:text-on-surface-variant"
               />
             </label>
 
             <div className="mt-4 rounded-[22px] bg-surface-container-highest/55 px-4 py-3">
+              <div className="mb-3 flex flex-wrap gap-2">
+                {peopleFilters.map((filter) => (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() => onPeopleFilterChange?.(filter.key)}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors ${peopleFilter === filter.key ? 'bg-primary text-on-primary' : 'bg-white/75 text-on-surface-variant'}`}
+                  >
+                    {filter.key === 'friends' ? t('people.friends') : filter.key === 'sent' ? t('people.sent') : t('people.received')}
+                  </button>
+                ))}
+              </div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-on-surface-variant">
                 {getPeoplePanelLabel(peoplePanelState?.source)}
               </p>
@@ -394,11 +426,11 @@ const ConversationList = ({
           >
             {isSearchingPeople ? (
               <div className="rounded-[24px] bg-surface-container-lowest p-5 text-sm text-on-surface-variant shadow-sm">
-                Dang tim nguoi dung...
+                {t('people.searching')}
               </div>
             ) : (peoplePanelState?.users || []).length === 0 ? (
               <div className="rounded-[24px] bg-surface-container-lowest p-5 text-sm text-on-surface-variant shadow-sm">
-                {peoplePanelState?.description || 'Khong tim thay tai khoan phu hop.'}
+                {peoplePanelState?.description || t('people.noMatches')}
               </div>
             ) : (
               peoplePanelState.users.map((user) => {

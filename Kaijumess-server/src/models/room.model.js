@@ -49,6 +49,7 @@ const conversationSelectBase = `
     c.name,
     c.avatar_url,
     c.description,
+    c.wallpaper_id,
     c.created_at,
     c.updated_at,
     c.last_message_at,
@@ -584,6 +585,137 @@ const acceptFriendRequest = async ({ friendshipId }) => {
     return rows[0] || null;
 };
 
+const rejectFriendRequest = async ({ friendshipId }) => {
+    const query = `
+        UPDATE friendships
+        SET status = 'rejected',
+            accepted_at = NULL,
+            updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+    `;
+
+    const { rows } = await pool.query(query, [friendshipId]);
+    return rows[0] || null;
+};
+
+const listPendingFriendInvitations = async ({ userId }) => {
+    const { rows } = await pool.query(
+        `
+            SELECT
+                f.id,
+                f.requester_id,
+                f.addressee_id,
+                f.status,
+                f.created_at,
+                requester.username AS requester_username,
+                requester.email AS requester_email,
+                requester.full_name AS requester_full_name,
+                requester.display_name AS requester_display_name,
+                requester.avatar_url AS requester_avatar_url
+            FROM friendships f
+            JOIN users requester ON requester.id = f.requester_id
+            WHERE f.addressee_id = $1
+              AND f.status = 'pending'
+            ORDER BY f.created_at DESC
+        `,
+        [userId]
+    );
+
+    return rows;
+};
+
+const listPendingFriendRequestsByDirection = async ({ direction, query: rawQuery = '', userId }) => {
+    const queryText = rawQuery.trim();
+    const isIncoming = direction === 'incoming';
+
+    const { rows } = await pool.query(
+        `
+            SELECT
+                f.id AS friendship_id,
+                f.status AS friendship_status,
+                f.requester_id AS friendship_requester_id,
+                f.addressee_id AS friendship_addressee_id,
+                f.created_at AS friendship_created_at,
+                u.id,
+                u.username,
+                u.email,
+                u.full_name,
+                u.display_name,
+                u.avatar_url,
+                u.status,
+                u.last_seen,
+                dc.id AS direct_conversation_id
+            FROM friendships f
+            JOIN users u
+              ON u.id = CASE
+                  WHEN $2::boolean THEN f.requester_id
+                  ELSE f.addressee_id
+              END
+            LEFT JOIN LATERAL (
+                SELECT c.id
+                FROM conversations c
+                JOIN participants current_participant
+                  ON current_participant.conversation_id = c.id
+                 AND current_participant.user_id = $1
+                 AND current_participant.left_at IS NULL
+                 AND current_participant.removed_at IS NULL
+                JOIN participants peer_participant
+                  ON peer_participant.conversation_id = c.id
+                 AND peer_participant.user_id = u.id
+                 AND peer_participant.left_at IS NULL
+                 AND peer_participant.removed_at IS NULL
+                WHERE c.type = 'direct'
+                  AND c.deleted_at IS NULL
+                LIMIT 1
+            ) dc ON TRUE
+            WHERE f.status = 'pending'
+              AND (
+                  ($2::boolean = TRUE AND f.addressee_id = $1)
+                  OR ($2::boolean = FALSE AND f.requester_id = $1)
+              )
+              AND (
+                  $3 = ''
+                  OR u.email ILIKE '%' || $3 || '%'
+                  OR u.username::text ILIKE '%' || $3 || '%'
+                  OR COALESCE(u.full_name, '') ILIKE '%' || $3 || '%'
+                  OR COALESCE(u.display_name, '') ILIKE '%' || $3 || '%'
+              )
+            ORDER BY f.created_at DESC
+        `,
+        [userId, isIncoming, queryText]
+    );
+
+    return rows;
+};
+
+const listAcceptedFriendshipEvents = async ({ userId }) => {
+    const { rows } = await pool.query(
+        `
+            SELECT
+                f.id,
+                f.requester_id,
+                f.addressee_id,
+                f.accepted_at,
+                u.username,
+                u.email,
+                u.full_name,
+                u.display_name,
+                u.avatar_url
+            FROM friendships f
+            JOIN users u ON u.id = f.addressee_id
+            WHERE f.requester_id = $1
+              AND f.status = 'accepted'
+              AND f.accepted_at IS NOT NULL
+            ORDER BY f.accepted_at DESC
+            LIMIT 20
+        `,
+        [userId]
+    );
+
+    return rows;
+};
+
 const updateParticipantNickname = async ({ conversationId, nickname, targetUserId }) => {
     const query = `
         UPDATE participants
@@ -597,6 +729,20 @@ const updateParticipantNickname = async ({ conversationId, nickname, targetUserI
     `;
 
     const { rows } = await pool.query(query, [conversationId, targetUserId, nickname]);
+    return rows[0] || null;
+};
+
+const updateConversationWallpaper = async ({ conversationId, wallpaperId }) => {
+    const query = `
+        UPDATE conversations
+        SET wallpaper_id = $2,
+            updated_at = NOW()
+        WHERE id = $1
+          AND deleted_at IS NULL
+        RETURNING id, wallpaper_id, updated_at
+    `;
+
+    const { rows } = await pool.query(query, [conversationId, wallpaperId]);
     return rows[0] || null;
 };
 
@@ -625,8 +771,13 @@ module.exports = {
     findPairFriendship,
     isMissingFriendshipsTableError,
     listAcceptedFriends,
+    listAcceptedFriendshipEvents,
+    listPendingFriendRequestsByDirection,
+    listPendingFriendInvitations,
     listUserConversations,
+    rejectFriendRequest,
     reopenFriendRequest,
     searchUsers,
+    updateConversationWallpaper,
     updateParticipantNickname,
 };

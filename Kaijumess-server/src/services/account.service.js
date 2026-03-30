@@ -1,3 +1,6 @@
+const callModel = require('../models/call.model');
+const notificationModel = require('../models/notification.model');
+const roomService = require('./room.service');
 const userModel = require('../models/user.model');
 const userSessionModel = require('../models/user-session.model');
 
@@ -82,6 +85,208 @@ const ensureSessionStorageReady = (error) => {
     resolvedError.statusCode = 503;
     throw resolvedError;
 };
+
+const toLower = (value) => (typeof value === 'string' ? value.toLowerCase() : '');
+
+const formatRelativeTime = (value) => {
+    if (!value) {
+        return '';
+    }
+
+    const diffMs = Date.now() - new Date(value).getTime();
+    const minutes = Math.max(1, Math.floor(diffMs / 60000));
+
+    if (minutes < 60) {
+        return `${minutes}m ago`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+
+    if (hours < 24) {
+        return `${hours}h ago`;
+    }
+
+    return `${Math.floor(hours / 24)}d ago`;
+};
+
+const formatDateGroup = (value) => {
+    const targetDate = new Date(value);
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+    if (targetDate >= todayStart) {
+        return 'Today';
+    }
+
+    if (targetDate >= yesterdayStart) {
+        return 'Yesterday';
+    }
+
+    return 'Earlier';
+};
+
+const buildMentionTerms = (user) => {
+    const candidates = [
+        user.username,
+        user.display_name,
+        user.full_name,
+    ]
+        .map((value) => sanitizeString(value, '', 120))
+        .filter(Boolean)
+        .map((value) => value.toLowerCase());
+
+    return [...new Set(candidates.flatMap((value) => [value, `@${value}`]))];
+};
+
+const createNotificationMissingStorageError = () => {
+    const error = new Error('Notification storage is not ready.');
+    error.code = 'NOTIFICATION_STORAGE_NOT_READY';
+    error.statusCode = 503;
+    return error;
+};
+
+const withNotificationStorage = async (operation) => {
+    try {
+        return await operation();
+    } catch (error) {
+        if (error?.code !== '42P01') {
+            throw error;
+        }
+
+        try {
+            await notificationModel.ensureNotificationStateSchema();
+        } catch {
+            throw createNotificationMissingStorageError();
+        }
+
+        return operation();
+    }
+};
+
+const listNotificationCenter = async (userId) => {
+    const currentUser = await ensureUserExists(userId);
+    const mentionTerms = buildMentionTerms(currentUser);
+
+    const [friendInvitations, recentMessages, recentCalls, acceptedFriendships, outgoingFriendRequests] = await Promise.all([
+        roomService.listPendingFriendInvitations(userId),
+        notificationModel.listRecentTextMessagesForUser({ userId, limit: 80 }),
+        callModel.listCallsForUser({ limit: 40, offset: 0, query: '', userId }),
+        roomService.listAcceptedFriendshipEvents(userId),
+        roomService.listPendingFriendRequestsByDirection(userId, 'outgoing', ''),
+    ]);
+
+    const mentionNotifications = recentMessages
+        .filter((message) => {
+            const content = toLower(message.content);
+            return mentionTerms.some((term) => term && content.includes(term));
+        })
+        .slice(0, 20)
+        .map((message) => ({
+            actor:
+                message.sender_display_name ||
+                message.sender_full_name ||
+                message.sender_username ||
+                message.sender_email ||
+                'Unknown user',
+            avatar: message.sender_avatar_url || '',
+            category: 'mention',
+            conversationId: message.conversation_id,
+            createdAt: message.created_at,
+            dateGroup: formatDateGroup(message.created_at),
+            description: message.content || 'Mentioned you in a conversation.',
+            id: `message:${message.id}`,
+            messageId: message.id,
+            timeLabel: formatRelativeTime(message.created_at),
+        }));
+
+    const callNotifications = recentCalls
+        .filter((call) => ['busy', 'missed', 'rejected'].includes(call.status))
+        .slice(0, 20)
+        .map((call) => ({
+            actor: call.peer_display_name || call.peer_full_name || call.peer_username || call.peer_email || 'Unknown user',
+            avatar: call.peer_avatar_url || '',
+            category: 'call',
+            conversationId: call.conversation_id,
+            createdAt: call.created_at,
+            dateGroup: formatDateGroup(call.created_at),
+            description: `Missed call from ${call.peer_display_name || call.peer_full_name || call.peer_username || call.peer_email || 'Unknown user'}.`,
+            id: `call:${call.id}`,
+            timeLabel: formatRelativeTime(call.created_at),
+        }));
+
+    const acceptedFriendNotifications = acceptedFriendships.map((item) => ({
+        actor: item.name,
+        avatar: item.avatarUrl,
+        category: 'system',
+        createdAt: item.acceptedAt,
+        dateGroup: formatDateGroup(item.acceptedAt),
+        description: `${item.name} accepted your friend request.`,
+        id: `friendship:accepted:${item.friendshipId}`,
+        timeLabel: formatRelativeTime(item.acceptedAt),
+    }));
+
+    const outgoingFriendNotifications = outgoingFriendRequests.map((item) => ({
+        actor: item.displayName,
+        avatar: item.avatarUrl,
+        category: 'system',
+        createdAt: item.lastInteractedAt || new Date().toISOString(),
+        dateGroup: formatDateGroup(item.lastInteractedAt || new Date()),
+        description: `You sent a friend request to ${item.displayName}.`,
+        id: `friendship:sent:${item.friendship?.id || item.id}`,
+        timeLabel: formatRelativeTime(item.lastInteractedAt || new Date()),
+    }));
+
+    const notifications = [...mentionNotifications, ...callNotifications, ...acceptedFriendNotifications, ...outgoingFriendNotifications]
+        .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+        .slice(0, 40);
+
+    const readStates = await withNotificationStorage(() =>
+        notificationModel.listNotificationStates({
+            notificationKeys: notifications.map((item) => item.id),
+            userId,
+        })
+    );
+    const readKeySet = new Set(readStates.map((item) => item.notification_key));
+
+    return {
+        friendInvitations,
+        groupInvitations: [],
+        notifications: notifications.map((notification) => ({
+            ...notification,
+            read: readKeySet.has(notification.id),
+        })),
+        trendingGroups: [],
+    };
+};
+
+const markNotificationRead = async (userId, notificationKey) => {
+    await ensureUserExists(userId);
+
+    if (!notificationKey) {
+        const error = new Error('notificationKey is required.');
+        error.code = 'MISSING_NOTIFICATION_KEY';
+        error.field = 'notificationKey';
+        error.statusCode = 400;
+        throw error;
+    }
+
+    return withNotificationStorage(() => notificationModel.markNotificationRead({ notificationKey, userId }));
+};
+
+const markAllNotificationsRead = async (userId) => {
+    const center = await listNotificationCenter(userId);
+    return withNotificationStorage(() =>
+        notificationModel.markNotificationsRead({
+            notificationKeys: center.notifications.map((item) => item.id),
+            userId,
+        })
+    );
+};
+
+const respondToFriendInvitation = async (userId, friendshipId, action) =>
+    roomService.respondToFriendInvitation(userId, friendshipId, action);
 
 const updateProfile = async (userId, payload) => {
     const currentUser = await ensureUserExists(userId);
@@ -227,7 +432,11 @@ const revokeSession = async (userId, sessionId, currentSessionId) => {
 };
 
 module.exports = {
+    listNotificationCenter,
     listSessions,
+    markAllNotificationsRead,
+    markNotificationRead,
+    respondToFriendInvitation,
     revokeSession,
     updateProfile,
 };

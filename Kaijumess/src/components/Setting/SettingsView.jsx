@@ -12,52 +12,60 @@ import { useSearchParams } from 'react-router-dom';
 
 import Account from './Account';
 import Appearance from './Appearance';
+import Language from './Language';
 import Notifications from './Notifications';
 import Privacy from './Privacy';
 import Profile from './Profile';
 import SettingsOverview from './SettingsOverview';
 import MobileBottomNav from '../mobile/MobileBottomNav';
+import { useLanguage } from '../../context/LanguageContext';
 
-const navigationItems = [
+const buildNavigationItems = (t) => [
   {
-    description: 'Tong quan cai dat quan trong cho tai khoan',
+    description: t('settings.descOverview'),
     icon: <HomeOutlined />,
     key: 'overview',
-    label: 'Overview',
+    label: t('settings.overview'),
   },
   {
-    description: 'Theme, wallpaper, blur va kich thuoc chu',
+    description: t('settings.descAppearance'),
     icon: <BgColorsOutlined />,
     key: 'appearance',
-    label: 'Appearance',
+    label: t('settings.appearance'),
   },
   {
-    description: 'Thong tin tai khoan, session va 2FA',
+    description: t('settings.descAccount'),
     icon: <UserOutlined />,
     key: 'account',
-    label: 'Account',
+    label: t('settings.account'),
   },
   {
-    description: 'Trang profile, media va thong tin cong khai',
+    description: t('settings.descProfile'),
     icon: <UserOutlined />,
     key: 'profile',
-    label: 'Profile',
+    label: t('settings.profile'),
   },
   {
-    description: 'Thong bao day, banner, sound va quiet hours',
+    description: t('settings.descNotifications'),
     icon: <BellOutlined />,
     key: 'notifications',
-    label: 'Notifications',
+    label: t('settings.notifications'),
   },
   {
-    description: 'Visibility, block list va bao mat',
+    description: t('settings.descLanguage'),
+    icon: <BgColorsOutlined />,
+    key: 'language',
+    label: t('settings.language'),
+  },
+  {
+    description: t('settings.descPrivacy'),
     icon: <LockOutlined />,
     key: 'privacy',
-    label: 'Privacy',
+    label: t('settings.privacy'),
   },
 ];
 
-const DEFAULT_SETTINGS_SECTION = navigationItems[0].key;
+const DEFAULT_SETTINGS_SECTION = 'overview';
 
 const SettingsView = ({
   currentUser,
@@ -67,6 +75,8 @@ const SettingsView = ({
   onOpenChats,
   onOpenPeople,
 }) => {
+  const { t } = useLanguage();
+  const navigationItems = buildNavigationItems(t);
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === 'undefined') {
       return false;
@@ -112,6 +122,7 @@ const SettingsView = ({
     overview: <SettingsOverview currentUser={currentUser} onNavigateSection={handleSectionChange} />,
     account: <Account currentUser={currentUser} onLogout={onLogout} />,
     appearance: <Appearance currentUser={currentUser} />,
+    language: <Language />,
     notifications: <Notifications currentUser={currentUser} />,
     privacy: <Privacy currentUser={currentUser} />,
     profile: <Profile currentUser={currentUser} />,
@@ -142,12 +153,12 @@ const SettingsView = ({
       fillWhenActive: true,
       icon: 'settings',
       key: 'settings',
-      label: 'Settings',
+      label: t('settings.settings'),
       onClick: () => handleSectionChange('overview'),
     },
   ];
 
-  const mobileTitle = activeSection === 'overview' ? 'Settings' : currentItem.label;
+  const mobileTitle = activeSection === 'overview' ? t('settings.settings') : currentItem.label;
 
   if (isMobileViewport) {
     return (
@@ -201,6 +212,27 @@ const SettingsView = ({
         </header>
 
         <main className="hide-scrollbar flex-1 overflow-y-auto px-4 pb-28 pt-20">
+          {activeSection === 'overview' ? (
+            <div className="mb-4 flex items-center gap-3 rounded-[24px] bg-surface-container-low px-4 py-3 shadow-sm">
+              <button
+                type="button"
+                onClick={onCloseSettings}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-outline-variant px-4 py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
+              >
+                <ArrowLeftOutlined />
+                {t('settings.backToChat')}
+              </button>
+
+              <button
+                type="button"
+                onClick={onLogout}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-container"
+              >
+                <LogoutOutlined />
+                {t('settings.logout')}
+              </button>
+            </div>
+          ) : null}
           {sectionMap[activeSection]}
         </main>
 

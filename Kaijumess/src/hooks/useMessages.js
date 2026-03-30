@@ -4,12 +4,15 @@ import {
   createDirectRoom,
   createFriendRequest,
   fetchFriends,
+  fetchPendingFriendRequests,
   fetchMessages,
   fetchRooms,
   searchUsers,
   sendMessage,
+  updateConversationWallpaper,
   updateParticipantNickname,
 } from '../services/chat';
+import { useLanguage } from '../context/LanguageContext';
 
 const FRIENDS_INITIAL_LIMIT = 20;
 const FRIENDS_LOAD_MORE_LIMIT = 30;
@@ -156,6 +159,7 @@ const applyFriendshipToConversation = (conversation, targetUserId, result) => {
 };
 
 export const useMessages = (currentUser) => {
+  const { t } = useLanguage();
   const [activeConversationId, setActiveConversationId] = useState('');
   const [conversations, setConversations] = useState([]);
   const [conversationSearch, setConversationSearch] = useState('');
@@ -166,16 +170,20 @@ export const useMessages = (currentUser) => {
   const [isLoadingMorePeople, setIsLoadingMorePeople] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isUpdatingParticipantNickname, setIsUpdatingParticipantNickname] = useState(false);
+  const [isUpdatingConversationWallpaper, setIsUpdatingConversationWallpaper] = useState(false);
   const [friendRequestTargetId, setFriendRequestTargetId] = useState('');
   const [messagesByConversation, setMessagesByConversation] = useState({});
   const [messagePageStateByConversation, setMessagePageStateByConversation] = useState({});
   const [notice, setNotice] = useState(null);
   const [peopleSearchQuery, setPeopleSearchQuery] = useState('');
   const [friendEntries, setFriendEntries] = useState([]);
+  const [incomingFriendEntries, setIncomingFriendEntries] = useState([]);
+  const [outgoingFriendEntries, setOutgoingFriendEntries] = useState([]);
   const [directoryResults, setDirectoryResults] = useState([]);
   const [hasMoreFriends, setHasMoreFriends] = useState(false);
   const [hasMoreDirectory, setHasMoreDirectory] = useState(false);
   const [peopleSource, setPeopleSource] = useState('friends');
+  const [peopleFilter, setPeopleFilter] = useState('friends');
   const [remoteTyping, setRemoteTyping] = useState({});
 
   const showNotice = useCallback((message, type = 'info') => {
@@ -296,10 +304,13 @@ export const useMessages = (currentUser) => {
   useEffect(() => {
     if (!isPeoplePanelOpen) {
       setFriendEntries([]);
+      setIncomingFriendEntries([]);
+      setOutgoingFriendEntries([]);
       setDirectoryResults([]);
       setHasMoreFriends(false);
       setHasMoreDirectory(false);
       setPeopleSource('friends');
+      setPeopleFilter('friends');
       setPeopleSearchQuery('');
       setIsSearchingPeople(false);
       setIsLoadingMorePeople(false);
@@ -341,15 +352,23 @@ export const useMessages = (currentUser) => {
       setPeopleSource('friends');
 
       try {
-        const friendPayload = await fetchFriends({
-          limit: FRIENDS_INITIAL_LIMIT,
-          offset: 0,
-          query: normalizedQuery,
-        });
+        const [friendPayload, incomingPayload, outgoingPayload] = await Promise.all([
+          fetchFriends({
+            limit: FRIENDS_INITIAL_LIMIT,
+            offset: 0,
+            query: normalizedQuery,
+          }),
+          fetchPendingFriendRequests({ direction: 'incoming', query: normalizedQuery }),
+          fetchPendingFriendRequests({ direction: 'outgoing', query: normalizedQuery }),
+        ]);
 
         if (!isCancelled) {
           const nextFriends = Array.isArray(friendPayload.friends) ? friendPayload.friends : [];
+          const nextIncoming = Array.isArray(incomingPayload.users) ? incomingPayload.users : [];
+          const nextOutgoing = Array.isArray(outgoingPayload.users) ? outgoingPayload.users : [];
           setFriendEntries(nextFriends);
+          setIncomingFriendEntries(nextIncoming);
+          setOutgoingFriendEntries(nextOutgoing);
           setHasMoreFriends(Boolean(friendPayload.pageInfo?.hasMore));
           setDirectoryResults([]);
           setHasMoreDirectory(false);
@@ -395,11 +414,31 @@ export const useMessages = (currentUser) => {
   const peoplePanelState = useMemo(() => {
     const normalizedQuery = peopleSearchQuery.trim();
 
+    if (peopleFilter === 'received') {
+      return {
+        description: incomingFriendEntries.length
+          ? `Ban dang co ${incomingFriendEntries.length} loi moi ket ban cho.`
+          : 'Khong co loi moi ket ban nao phu hop.',
+        source: 'received',
+        users: incomingFriendEntries,
+      };
+    }
+
+    if (peopleFilter === 'sent') {
+      return {
+        description: outgoingFriendEntries.length
+          ? `Ban da gui ${outgoingFriendEntries.length} loi moi ket ban dang cho xu ly.`
+          : 'Khong co loi moi da gui nao phu hop.',
+        source: 'sent',
+        users: outgoingFriendEntries,
+      };
+    }
+
     if (!normalizedQuery) {
       return {
         description: friendEntries.length
-          ? 'Danh sach ban be duoc sap xep theo lan tuong tac gan nhat.'
-          : 'Ban chua co ban be nao gan day. Nhap ten hoac email de tim nguoi khac.',
+          ? t('people.recentFriends')
+          : t('people.searchByNameOrEmail'),
         source: 'friends',
         users: friendEntries,
       };
@@ -407,7 +446,7 @@ export const useMessages = (currentUser) => {
 
     if (friendEntries.length > 0) {
       return {
-        description: `Tim thay ${friendEntries.length} ket qua trong danh sach ban be cua ban.`,
+        description: `${t('people.recentFriends')}: ${friendEntries.length}`,
         source: 'friends',
         users: friendEntries,
       };
@@ -416,7 +455,7 @@ export const useMessages = (currentUser) => {
     if (normalizedQuery.length < 2) {
       return {
         description:
-          'Khong thay trong danh sach ban be. Nhap it nhat 2 ky tu de tim nguoi khac.',
+          t('people.searchByNameOrEmail'),
         source: 'empty',
         users: [],
       };
@@ -424,7 +463,7 @@ export const useMessages = (currentUser) => {
 
     if (isSearchingPeople) {
       return {
-        description: 'Dang tim nguoi dung ben ngoai danh sach ban be...',
+        description: t('people.searching'),
         source: 'loading',
         users: [],
       };
@@ -432,18 +471,18 @@ export const useMessages = (currentUser) => {
 
     if (directoryResults.length > 0) {
       return {
-        description: 'Khong thay trong ban be, day la ket qua tim kiem toan he thong.',
+        description: t('people.systemResults'),
         source: 'directory',
         users: directoryResults,
       };
     }
 
     return {
-      description: 'Khong tim thay ban be hoac tai khoan nao phu hop voi tu khoa nay.',
+      description: t('people.noMatches'),
       source: 'empty',
       users: [],
     };
-  }, [directoryResults, friendEntries, isSearchingPeople, peopleSearchQuery]);
+  }, [directoryResults, friendEntries, incomingFriendEntries, isSearchingPeople, outgoingFriendEntries, peopleFilter, peopleSearchQuery, t]);
 
   const handleIncomingMessage = useCallback(
     (message) => {
@@ -774,6 +813,42 @@ export const useMessages = (currentUser) => {
           ),
         );
 
+        setIncomingFriendEntries((currentValue) =>
+          currentValue
+            .map((user) =>
+              user.id === targetUserId
+                ? {
+                    ...user,
+                    friendship: normalizeFriendshipAfterRequest(result, user.friendship),
+                  }
+                : user,
+            )
+            .filter((user) => !user.friendship?.isFriend),
+        );
+
+        setOutgoingFriendEntries((currentValue) => {
+          const existingUser = currentValue.find((user) => user.id === targetUserId)
+            || directoryResults.find((user) => user.id === targetUserId)
+            || incomingFriendEntries.find((user) => user.id === targetUserId)
+            || friendEntries.find((user) => user.id === targetUserId);
+
+          if (!existingUser) {
+            return currentValue;
+          }
+
+          const nextUser = {
+            ...existingUser,
+            friendship: normalizeFriendshipAfterRequest(result, existingUser.friendship),
+          };
+
+          if (nextUser.friendship?.isFriend) {
+            return currentValue.filter((user) => user.id !== targetUserId);
+          }
+
+          const filtered = currentValue.filter((user) => user.id !== targetUserId);
+          return [nextUser, ...filtered];
+        });
+
         setConversations((currentValue) =>
           currentValue.map((conversation) =>
             applyFriendshipToConversation(conversation, targetUserId, result),
@@ -796,7 +871,7 @@ export const useMessages = (currentUser) => {
         );
       }
     },
-    [friendRequestTargetId, showNotice],
+    [directoryResults, friendEntries, friendRequestTargetId, incomingFriendEntries, showNotice],
   );
 
   const handleUpdateParticipantNickname = useCallback(
@@ -826,8 +901,35 @@ export const useMessages = (currentUser) => {
     [handleConversationUpdated, showNotice],
   );
 
+  const handleUpdateConversationWallpaper = useCallback(
+    async ({ conversationId, wallpaperId }) => {
+      if (!conversationId) {
+        return null;
+      }
+
+      setIsUpdatingConversationWallpaper(true);
+
+      try {
+        const result = await updateConversationWallpaper({ conversationId, wallpaperId });
+
+        if (result.room) {
+          handleConversationUpdated(result.room);
+        }
+
+        showNotice('Da cap nhat nen cuoc tro chuyen.', 'success');
+        return result.room || null;
+      } catch (error) {
+        showNotice(error.message || 'Khong the cap nhat nen cuoc tro chuyen.', 'error');
+        return null;
+      } finally {
+        setIsUpdatingConversationWallpaper(false);
+      }
+    },
+    [handleConversationUpdated, showNotice],
+  );
+
   const clearNotice = useCallback(() => setNotice(null), []);
-  const hasMorePeople = peopleSource === 'directory' ? hasMoreDirectory : hasMoreFriends;
+  const hasMorePeople = peopleFilter === 'friends' && peopleSource === 'directory' ? hasMoreDirectory : peopleFilter === 'friends' ? hasMoreFriends : false;
 
   return {
     activeConversation,
@@ -850,6 +952,7 @@ export const useMessages = (currentUser) => {
     handleSendFriendRequest,
     handleSendMessage,
     handleStartDirectRoom,
+    handleUpdateConversationWallpaper,
     handleUpdateParticipantNickname,
     handleTypingStart,
     handleTypingStop,
@@ -859,14 +962,17 @@ export const useMessages = (currentUser) => {
     isPeoplePanelOpen,
     isSearchingPeople,
     isSendingMessage,
+    isUpdatingConversationWallpaper,
     isUpdatingParticipantNickname,
     notice,
     hasMorePeople,
     peoplePanelState,
+    peopleFilter,
     peopleSearchQuery,
     remoteTypingUserId: activeConversationId ? remoteTyping[activeConversationId] || '' : '',
     selectConversation,
     setConversationSearch,
+    setPeopleFilter,
     setPeopleSearchQuery,
   };
 };

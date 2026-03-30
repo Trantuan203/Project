@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useLanguage } from '../../context/LanguageContext';
 import { fetchCalls } from '../../services/chat';
 
 const CALLS_PAGE_LIMIT = 15;
@@ -15,9 +16,9 @@ const formatCallTime = (value) => {
   }).format(new Date(value));
 };
 
-const formatDuration = (value) => {
+const formatDuration = (value, t) => {
   if (!Number.isFinite(value) || value <= 0) {
-    return 'No duration';
+    return t('calls.noDuration');
   }
 
   const minutes = Math.floor(value / 60);
@@ -44,27 +45,28 @@ const getStatusTone = (call) => {
   return 'bg-surface-container-high text-on-surface-variant';
 };
 
-const getStatusLabel = (call) => {
+const getStatusLabel = (call, t) => {
   if (call.status === 'ended') {
-    return call.direction === 'incoming' ? 'Incoming' : 'Outgoing';
+    return call.direction === 'incoming' ? t('calls.incomingStatus') : t('calls.outgoingStatus');
   }
 
   if (call.status === 'missed') {
-    return 'Missed';
+    return t('calls.missed');
   }
 
   if (call.status === 'rejected') {
-    return 'Rejected';
+    return t('calls.rejected');
   }
 
   if (call.status === 'busy') {
-    return 'Busy';
+    return t('calls.busy');
   }
 
   return call.status;
 };
 
 const CallsView = ({ onBack, onOpenConversation }) => {
+  const { t } = useLanguage();
   const [calls, setCalls] = useState([]);
   const [dateFilter, setDateFilter] = useState('');
   const [hasMore, setHasMore] = useState(false);
@@ -100,7 +102,7 @@ const CallsView = ({ onBack, onOpenConversation }) => {
           setCalls([]);
         }
 
-        setNotice(error.message || 'Khong the tai lich su cuoc goi.');
+        setNotice(error.message || t('calls.loading'));
       } finally {
         if (append) {
           setIsLoadingMore(false);
@@ -109,7 +111,7 @@ const CallsView = ({ onBack, onOpenConversation }) => {
         }
       }
     },
-    [dateFilter, query],
+    [dateFilter, query, t],
   );
 
   useEffect(() => {
@@ -145,11 +147,11 @@ const CallsView = ({ onBack, onOpenConversation }) => {
 
   const summaryText = useMemo(() => {
     if (query.trim() || dateFilter) {
-      return 'Dang hien 15 cuoc goi gan nhat trong pham vi loc hien tai. Cuon tiep de tai them.';
+      return t('calls.summaryFiltered');
     }
 
-    return 'Dang hien 15 cuoc goi gan nhat. Cuon xuong de tai them tung lo tiep theo.';
-  }, [dateFilter, query]);
+    return t('calls.summaryDefault');
+  }, [dateFilter, query, t]);
 
   return (
     <section className="flex min-w-0 flex-1 flex-col bg-surface">
@@ -169,10 +171,10 @@ const CallsView = ({ onBack, onOpenConversation }) => {
 
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.24em] text-on-surface-variant">
-                Calls
+                {t('calls.recentLabel')}
               </p>
               <h2 className="mt-2 text-3xl font-black tracking-tight text-on-surface">
-                Recent Calls
+                {t('calls.title')}
               </h2>
               <p className="mt-2 max-w-xl text-sm leading-6 text-on-surface-variant">
                 {summaryText}
@@ -187,7 +189,7 @@ const CallsView = ({ onBack, onOpenConversation }) => {
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by name or email"
+                placeholder={t('calls.searchPlaceholder')}
                 className="w-full border-none bg-transparent text-sm text-on-surface outline-none placeholder:text-on-surface-variant"
               />
             </label>
@@ -215,11 +217,11 @@ const CallsView = ({ onBack, onOpenConversation }) => {
 
           {isLoading ? (
             <div className="rounded-[24px] bg-surface-container-lowest p-5 text-sm text-on-surface-variant shadow-sm">
-              Dang tai lich su cuoc goi...
+              {t('calls.loading')}
             </div>
           ) : calls.length === 0 ? (
             <div className="rounded-[24px] bg-surface-container-lowest p-5 text-sm text-on-surface-variant shadow-sm">
-              Khong co cuoc goi nao trong pham vi hien tai.
+              {t('calls.empty')}
             </div>
           ) : (
             calls.map((call) => (
@@ -255,7 +257,7 @@ const CallsView = ({ onBack, onOpenConversation }) => {
 
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${getStatusTone(call)}`}>
-                          {getStatusLabel(call)}
+                          {getStatusLabel(call, t)}
                         </span>
                         <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">
                           {call.type}
@@ -268,15 +270,15 @@ const CallsView = ({ onBack, onOpenConversation }) => {
                         <span className="material-symbols-outlined text-[18px]">
                           {call.type === 'video' ? 'videocam' : 'call'}
                         </span>
-                        {call.direction === 'incoming' ? 'Incoming call' : 'Outgoing call'}
+                        {call.direction === 'incoming' ? t('calls.incoming') : t('calls.outgoing')}
                       </span>
                       <span className="inline-flex items-center gap-2">
                         <span className="material-symbols-outlined text-[18px]">schedule</span>
-                        {formatDuration(call.durationSeconds)}
+                        {formatDuration(call.durationSeconds, t)}
                       </span>
                       <span className="inline-flex items-center gap-2">
                         <span className="material-symbols-outlined text-[18px]">forum</span>
-                        Open conversation
+                        {t('calls.openConversation')}
                       </span>
                     </div>
                   </div>
@@ -287,7 +289,7 @@ const CallsView = ({ onBack, onOpenConversation }) => {
 
           {isLoadingMore ? (
             <div className="rounded-[24px] bg-surface-container-lowest p-4 text-center text-sm text-on-surface-variant shadow-sm">
-              Dang tai them cuoc goi...
+              {t('calls.loadingMore')}
             </div>
           ) : null}
         </div>

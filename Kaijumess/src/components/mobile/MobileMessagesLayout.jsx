@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 
 import { getScaledFontSize } from '../../constants/appearance';
+import { useLanguage } from '../../context/LanguageContext';
 import { useAppearance } from '../../hooks/useAppearance';
 import MobileBottomNav from './MobileBottomNav';
 
@@ -41,8 +42,22 @@ const getPeoplePanelLabel = (source) => {
     return 'People Directory';
   }
 
+  if (source === 'sent') {
+    return 'Sent Requests';
+  }
+
+  if (source === 'received') {
+    return 'Friend Requests';
+  }
+
   return 'Recent Friends';
 };
+
+const peopleFilters = [
+  { key: 'friends', label: 'Da la ban' },
+  { key: 'sent', label: 'Da gui' },
+  { key: 'received', label: 'Loi moi' },
+];
 
 const getNoticeTone = (type) => {
   if (type === 'error') {
@@ -91,10 +106,13 @@ const MobileMessagesLayout = ({
   onStartDirectRoom,
   onUserSearchChange,
   peoplePanelState,
+  peopleFilter,
   peopleSearchQuery,
+  onPeopleFilterChange,
   unreadCount = 0,
 }) => {
   const { fontScale } = useAppearance();
+  const { t } = useLanguage();
 
   const searchSize = getScaledFontSize(fontScale, 15, 13);
   const nameSize = getScaledFontSize(fontScale, 15, 13);
@@ -139,7 +157,7 @@ const MobileMessagesLayout = ({
       fillWhenActive: true,
       icon: 'chat_bubble',
       key: 'chat',
-      label: 'Chats',
+      label: t('app.messages'),
       onClick: onOpenChats,
     },
     {
@@ -151,13 +169,13 @@ const MobileMessagesLayout = ({
     {
       icon: 'person',
       key: 'people',
-      label: 'Contacts',
+      label: t('app.people'),
       onClick: onOpenPeoplePanel,
     },
     {
       icon: 'settings',
       key: 'settings',
-      label: 'Settings',
+      label: t('app.settings'),
       onClick: onOpenSettings,
     },
   ];
@@ -181,10 +199,10 @@ const MobileMessagesLayout = ({
 
             <div className="min-w-0">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-on-surface-variant">
-                Inbox
+                {t('app.inbox')}
               </p>
               <h1 className="truncate text-[2rem] font-black tracking-tight text-primary">
-                Messages
+                {t('app.messages')}
               </h1>
             </div>
           </div>
@@ -193,7 +211,7 @@ const MobileMessagesLayout = ({
             type="button"
             onClick={onOpenNotifications}
             className="relative rounded-full p-3 text-on-surface-variant transition-colors hover:bg-slate-100/70 hover:text-primary"
-            aria-label="Notifications"
+              aria-label={t('app.notifications')}
           >
             <span className="material-symbols-outlined text-[28px]">notifications</span>
             {unreadCount > 0 ? (
@@ -209,7 +227,7 @@ const MobileMessagesLayout = ({
             <span className="material-symbols-outlined text-[20px] text-outline">search</span>
             <input
               className="w-full border-none bg-transparent text-on-surface outline-none placeholder:text-on-surface-variant/65"
-              placeholder="Search messages..."
+              placeholder={t('app.searchMessages')}
               type="text"
               value={conversationSearch}
               onChange={(event) => onConversationSearchChange(event.target.value)}
@@ -361,7 +379,7 @@ const MobileMessagesLayout = ({
         type="button"
         onClick={onOpenPeoplePanel}
         className="absolute bottom-28 right-6 z-10 flex h-14 w-14 items-center justify-center rounded-[20px] bg-primary text-on-primary shadow-[0_18px_36px_rgba(0,88,188,0.28)] transition-transform hover:scale-105 active:scale-95"
-        aria-label="Find people"
+        aria-label={t('people.findPeople')}
       >
         <span className="material-symbols-outlined text-[28px]">add</span>
       </button>
@@ -379,10 +397,10 @@ const MobileMessagesLayout = ({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.22em] text-on-surface-variant">
-                  Find People
+                  {t('people.findPeople')}
                 </p>
                 <h3 className="mt-2 text-xl font-black tracking-tight text-on-surface">
-                  Search by name or email
+                  {t('people.searchByNameOrEmail')}
                 </h3>
               </div>
               <button
@@ -401,12 +419,24 @@ const MobileMessagesLayout = ({
                 type="text"
                 value={peopleSearchQuery}
                 onChange={(event) => onUserSearchChange(event.target.value)}
-                placeholder="Enter full name, username or email"
+                placeholder={t('people.searchPlaceholder')}
                 className="w-full border-none bg-transparent text-on-surface outline-none placeholder:text-on-surface-variant"
               />
             </label>
 
             <div className="mt-4 rounded-[22px] bg-surface-container-highest/55 px-4 py-3">
+              <div className="mb-3 flex flex-wrap gap-2">
+                {peopleFilters.map((filter) => (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() => onPeopleFilterChange?.(filter.key)}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors ${peopleFilter === filter.key ? 'bg-primary text-on-primary' : 'bg-white/75 text-on-surface-variant'}`}
+                  >
+                    {filter.key === 'friends' ? t('people.friends') : filter.key === 'sent' ? t('people.sent') : t('people.received')}
+                  </button>
+                ))}
+              </div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-on-surface-variant">
                 {getPeoplePanelLabel(peoplePanelState?.source)}
               </p>
@@ -422,11 +452,11 @@ const MobileMessagesLayout = ({
           >
             {isSearchingPeople ? (
               <div className="rounded-[24px] bg-surface-container-lowest p-5 text-sm text-on-surface-variant shadow-sm">
-                Dang tim nguoi dung...
+                {t('people.searching')}
               </div>
             ) : (peoplePanelState?.users || []).length === 0 ? (
               <div className="rounded-[24px] bg-surface-container-lowest p-5 text-sm text-on-surface-variant shadow-sm">
-                {peoplePanelState?.description || 'Khong tim thay tai khoan phu hop.'}
+                {peoplePanelState?.description || t('people.noMatches')}
               </div>
             ) : (
               peoplePanelState.users.map((user) => {
