@@ -50,3 +50,47 @@ export const revokeAccountSession = async (sessionId) => {
     },
   });
 };
+
+export const fetchNotificationCenter = async () => {
+  const token = requireAuthToken();
+
+  return apiRequest('/api/account/notification-center', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+export const markAccountNotificationRead = async (notificationKey) => {
+  const token = requireAuthToken();
+
+  return apiRequest(`/api/account/notifications/${encodeURIComponent(notificationKey)}/read`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+export const markAllAccountNotificationsRead = async () => {
+  const token = requireAuthToken();
+
+  return apiRequest('/api/account/notifications/read-all', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+export const respondToFriendInvitation = async ({ action, friendshipId }) => {
+  const token = requireAuthToken();
+
+  return apiRequest(`/api/account/friend-invitations/${friendshipId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action }),
+  });
+};

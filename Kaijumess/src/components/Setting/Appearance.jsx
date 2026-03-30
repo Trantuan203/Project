@@ -21,6 +21,7 @@ import {
   WALLPAPER_PRESETS,
   resolveWallpaperOption,
 } from '../../constants/appearance';
+import { useLanguage } from '../../context/LanguageContext';
 import { useAppearance } from '../../hooks/useAppearance';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -133,6 +134,7 @@ const MobileAppearance = ({
   previewWallpaper,
   selectedAppIcon,
   setDraftFontScale,
+  t,
   themeMode,
 }) => (
   <section className="-mx-4 space-y-8 px-6 pb-8">
@@ -154,7 +156,7 @@ const MobileAppearance = ({
     <section>
       <div className="mb-4 flex items-end justify-between">
         <h2 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">
-          Theme Mode
+          {t('settings.themeMode')}
         </h2>
       </div>
 
@@ -216,7 +218,7 @@ const MobileAppearance = ({
                       isDarkCard ? 'text-white' : isSelected ? 'text-primary' : 'text-on-surface'
                     }`}
                   >
-                    {item.mobileLabel}
+                      {item.key === 'light' ? t('settings.light') : item.key === 'dark' ? t('settings.dark') : t('settings.auto')}
                   </span>
                 </div>
 
@@ -235,7 +237,7 @@ const MobileAppearance = ({
     <section>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">
-          Chat Wallpaper
+          {t('settings.chatWallpaper')}
         </h2>
 
         <div className="flex items-center gap-3">
@@ -245,7 +247,7 @@ const MobileAppearance = ({
               onClick={handleClearCustomWallpaper}
               className="text-xs font-bold text-on-surface-variant"
             >
-              Clear
+              {t('settings.clear')}
             </button>
           ) : null}
 
@@ -254,7 +256,7 @@ const MobileAppearance = ({
             onClick={openFilePicker}
             className="text-xs font-bold text-primary"
           >
-            See All
+            {t('settings.seeAll')}
           </button>
         </div>
       </div>
@@ -788,6 +790,7 @@ const DesktopAppearance = ({
 );
 
 const Appearance = () => {
+  const { t } = useLanguage();
   const fileInputRef = useRef(null);
   const {
     customWallpaperDataUrl,
@@ -1004,6 +1007,7 @@ const Appearance = () => {
     resolvedTheme,
     selectedAppIcon,
     setDraftFontScale,
+    t,
     themeMode,
     handleAppIconSelect,
   };

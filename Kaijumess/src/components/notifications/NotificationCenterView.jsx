@@ -1,5 +1,6 @@
 ﻿import React, { useMemo, useState } from 'react';
 import {
+  ArrowLeftOutlined,
   BellOutlined,
   CheckOutlined,
   CloseOutlined,
@@ -17,12 +18,7 @@ import {
 } from '@ant-design/icons';
 
 import { useNotificationCenter } from '../../hooks/useNotificationCenter';
-
-const filters = [
-  { key: 'all', label: 'All Activity' },
-  { key: 'unread', label: 'Unread' },
-  { key: 'mentions', label: 'Mentions' },
-];
+import { useLanguage } from '../../context/LanguageContext';
 
 const dateGroupsOrder = ['Today', 'Yesterday', 'Earlier'];
 
@@ -63,10 +59,11 @@ const matchesSearch = (query, ...values) => {
   return values.some((value) => value.toLowerCase().includes(query));
 };
 
-const NotificationCenterView = () => {
+const NotificationCenterView = ({ onClose }) => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [notice, setNotice] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useLanguage();
   const {
     friendInvitations,
     groupInvitations,
@@ -80,6 +77,11 @@ const NotificationCenterView = () => {
     trendingGroups,
     unreadCount,
   } = useNotificationCenter();
+  const filters = [
+    { key: 'all', label: t('notifications.allActivity') },
+    { key: 'unread', label: t('notifications.unread') },
+    { key: 'mentions', label: t('notifications.mentions') },
+  ];
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -174,7 +176,7 @@ const NotificationCenterView = () => {
   const handleNotificationCardAction = (notification, actionLabel) => {
     markNotificationRead(notification.id);
     setNotice({
-      message: `${actionLabel} hien dang la local UX. Neu ban muon mo dung thread/chat that thi phan nay can data backend.`,
+      message: `${actionLabel} da danh dau notification la da doc. Chuc nang mo dung thread se la buoc tiep theo.`,
       type: 'info',
     });
   };
@@ -191,20 +193,27 @@ const NotificationCenterView = () => {
   const handleMarkAllAsRead = () => {
     markAllNotificationsRead();
     setNotice({
-      message: 'Tat ca notification da duoc danh dau da doc tren may nay.',
+      message: 'Tat ca notification da duoc danh dau da doc.',
       type: 'success',
     });
   };
 
-  const handleFriendInvitationAction = (invitation, actionLabel) => {
-    resolveFriendInvitation(invitation.id);
-    setNotice({
-      message:
-        actionLabel === 'accept'
-          ? `${invitation.name} da duoc chap nhan loi moi ket ban trong local mock.`
-          : `${invitation.name} da duoc bo qua khoi danh sach loi moi ket ban.`,
-      type: actionLabel === 'accept' ? 'success' : 'info',
-    });
+  const handleFriendInvitationAction = async (invitation, actionLabel) => {
+    try {
+      await resolveFriendInvitation(invitation.id, actionLabel);
+      setNotice({
+        message:
+          actionLabel === 'accept'
+            ? `${invitation.name} da duoc chap nhan loi moi ket ban.`
+            : `${invitation.name} da duoc bo qua khoi danh sach loi moi ket ban.`,
+        type: actionLabel === 'accept' ? 'success' : 'info',
+      });
+    } catch (error) {
+      setNotice({
+        message: error.message || 'Khong the xu ly loi moi ket ban.',
+        type: 'error',
+      });
+    }
   };
 
   const handleGroupInvitationAction = (invitation, actionLabel) => {
@@ -231,7 +240,7 @@ const NotificationCenterView = () => {
   const handleRefreshInvitations = () => {
     refreshFriendInvitations();
     setNotice({
-      message: 'Danh sach loi moi ket ban da duoc lam moi theo local mock data.',
+      message: 'Danh sach loi moi ket ban da duoc lam moi.',
       type: 'info',
     });
   };
@@ -249,15 +258,25 @@ const NotificationCenterView = () => {
                   </span>
                   <div>
                     <h2 className="text-3xl font-black tracking-tight text-on-surface">
-                      Notifications
+                      {t('notifications.title')}
                     </h2>
                     <p className="mt-2 text-sm leading-6 text-on-surface-variant md:text-base">
-                      You have {unreadCount} unread notifications right now.
+                      {t('notifications.unreadNow', { count: unreadCount })}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-3 md:items-end">
+                  {onClose ? (
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="inline-flex items-center gap-2 self-start rounded-full border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:border-primary hover:text-primary md:self-end"
+                    >
+                      <ArrowLeftOutlined />
+                      {t('notifications.exit')}
+                    </button>
+                  ) : null}
                   <label className="relative block">
                     <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
                       <SearchOutlined />
@@ -266,7 +285,7 @@ const NotificationCenterView = () => {
                       type="text"
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Search notifications..."
+                      placeholder={t('notifications.searchPlaceholder')}
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="none"
@@ -283,7 +302,7 @@ const NotificationCenterView = () => {
                     onClick={handleMarkAllAsRead}
                     className="text-sm font-semibold text-primary transition-colors hover:text-primary-container"
                   >
-                    Mark all as read
+                    {t('notifications.markAllRead')}
                   </button>
                 </div>
               </div>
@@ -324,7 +343,7 @@ const NotificationCenterView = () => {
 
             {!hasResults ? (
               <div className="rounded-[28px] bg-surface-container-lowest p-8 text-center shadow-sm">
-                <p className="text-sm font-semibold text-on-surface">Khong co notification phu hop.</p>
+                <p className="text-sm font-semibold text-on-surface">{t('notifications.noMatches')}</p>
                 <p className="mt-2 text-sm text-on-surface-variant">
                   Thu doi bo loc hoac tu khoa tim kiem.
                 </p>
@@ -450,7 +469,7 @@ const NotificationCenterView = () => {
             <section className="rounded-[32px] bg-surface-container-low p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-lg font-black tracking-tight text-on-surface">
-                  Friend Invitations
+                  {t('notifications.friendInvitations')}
                 </h3>
                 <button
                   type="button"
@@ -505,13 +524,13 @@ const NotificationCenterView = () => {
               )}
             </section>
 
-            <section className="rounded-[32px] bg-surface-container-low p-6 shadow-sm">
+            {filteredGroupInvitations.length > 0 ? <section className="rounded-[32px] bg-surface-container-low p-6 shadow-sm">
               <div className="mb-6 flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <UsergroupAddOutlined />
                 </span>
                 <h3 className="text-lg font-black tracking-tight text-on-surface">
-                  Group Invitations
+                  {t('notifications.groupInvitations')}
                 </h3>
               </div>
 
@@ -566,9 +585,9 @@ const NotificationCenterView = () => {
                   ))}
                 </div>
               )}
-            </section>
+            </section> : null}
 
-            <section className="rounded-[32px] bg-surface-container-low p-6 shadow-sm">
+            {filteredTrendingGroups.length > 0 ? <section className="rounded-[32px] bg-surface-container-low p-6 shadow-sm">
               <h3 className="mb-6 text-lg font-black tracking-tight text-on-surface">
                 Trending Groups
               </h3>
@@ -607,7 +626,7 @@ const NotificationCenterView = () => {
                   ))}
                 </div>
               )}
-            </section>
+            </section> : null}
           </aside>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { DEFAULT_FONT_SCALE } from '../../constants/appearance';
 import { useAppearance } from '../../hooks/useAppearance';
 import { useNotificationCenter } from '../../hooks/useNotificationCenter';
 import { useTheme } from '../../hooks/useTheme';
+import { useLanguage } from '../../context/LanguageContext';
 
 const getInitials = (fullName) =>
   fullName
@@ -89,6 +90,7 @@ const SettingsOverview = ({ currentUser, onNavigateSection }) => {
   const [notice, setNotice] = useState(null);
   const { fontScale } = useAppearance();
   const { notificationPreferences, setNotificationPreferences } = useNotificationCenter();
+  const { languageOptions, t, language } = useLanguage();
   const { resolvedTheme, themeMode } = useTheme();
 
   const profileName = currentUser?.fullName || currentUser?.displayName || 'Kaiju User';
@@ -109,6 +111,7 @@ const SettingsOverview = ({ currentUser, onNavigateSection }) => {
     notificationPreferences.quietStart,
     notificationPreferences.soundPreset,
   ]);
+  const currentLanguageLabel = languageOptions.find((item) => item.code === language)?.nativeLabel || 'Tiếng Việt';
 
   return (
     <div className="space-y-6">
@@ -138,25 +141,25 @@ const SettingsOverview = ({ currentUser, onNavigateSection }) => {
           <h2 className="truncate text-lg font-bold text-on-surface">{profileName}</h2>
           <p className="truncate text-sm text-on-surface-variant">{profileEmail}</p>
           <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase text-primary">
-            {securityEnabled ? 'Protected Account' : 'Connected Account'}
+            {securityEnabled ? t('settings.protectedAccount') : t('settings.connectedAccount')}
           </span>
         </div>
       </button>
 
       <div className="space-y-2">
         <h3 className="px-2 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-          Account &amp; Security
+          {t('settings.account')} &amp; Security
         </h3>
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest">
           <LinkRow
             icon="lock"
-            title="Privacy"
+            title={t('settings.privacy')}
             description="Last seen, profile photo, blocked contacts"
             onClick={() => onNavigateSection('privacy')}
           />
           <LinkRow
             icon="security"
-            title="Security"
+            title={t('settings.security')}
             description={
               securityEnabled
                 ? 'Two-step verification enabled, sessions active'
@@ -169,13 +172,13 @@ const SettingsOverview = ({ currentUser, onNavigateSection }) => {
 
       <div className="space-y-2">
         <h3 className="px-2 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-          Notifications
+          {t('settings.notifications')}
         </h3>
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest">
           <ToggleRow
             checked={notificationPreferences.pushEnabled}
             icon="notifications"
-            title="Push Notifications"
+            title={t('settings.notifications')}
             description={
               notificationPreferences.pushEnabled
                 ? 'Enabled for all messages'
@@ -189,7 +192,7 @@ const SettingsOverview = ({ currentUser, onNavigateSection }) => {
           />
           <LinkRow
             icon="volume_up"
-            title="Sound & Haptics"
+            title={t('settings.soundHapticsShort')}
             description={soundSummary}
             onClick={() => onNavigateSection('notifications')}
           />
@@ -198,32 +201,38 @@ const SettingsOverview = ({ currentUser, onNavigateSection }) => {
 
       <div className="space-y-2">
         <h3 className="px-2 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-          Appearance
+          {t('settings.appearance')}
         </h3>
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest">
           <LinkRow
             icon="palette"
-            title="Theme"
+            title={t('settings.appearance')}
             description={getThemeLabel(themeMode, resolvedTheme)}
             onClick={() => onNavigateSection('appearance')}
           />
           <LinkRow
             icon="text_fields"
-            title="Font Size"
+            title={t('settings.fontSize')}
             description={`${getFontScaleLabel(fontScale)} (${fontScale}px)`}
             onClick={() => onNavigateSection('appearance')}
+          />
+          <LinkRow
+            icon="translate"
+            title={t('settings.language')}
+            description={currentLanguageLabel}
+            onClick={() => onNavigateSection('language')}
           />
         </div>
       </div>
 
       <div className="space-y-2 pb-10">
         <h3 className="px-2 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-          Support
+          {t('settings.support')}
         </h3>
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest">
           <LinkRow
             icon="help"
-            title="Help Center"
+            title={t('settings.helpCenter')}
             description="FAQs, user guides and support entry points"
             onClick={() =>
               setNotice({
@@ -235,7 +244,7 @@ const SettingsOverview = ({ currentUser, onNavigateSection }) => {
           />
           <LinkRow
             icon="info"
-            title="About KaijuMess"
+            title={t('settings.aboutApp')}
             description="Version 4.2.0 (Build 902)"
             onClick={() =>
               setNotice({

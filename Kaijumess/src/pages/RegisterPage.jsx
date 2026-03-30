@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLottie } from 'lottie-react';
 
 import rabbitAnimData from '../assets/Rabit-Sleep.json';
+import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../hooks/useAuth';
 import {
   getPasswordChecklist,
@@ -49,6 +50,7 @@ const getRegisterErrors = (form) => {
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { register } = useAuth();
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
@@ -213,18 +215,18 @@ const RegisterPage = () => {
             <div className="h-36 w-36">{lottieObj.View}</div>
           </div>
           <div className="relative z-10 px-6 text-center">
-            <h1 className="mb-2 text-4xl font-black tracking-tighter text-on-surface">Create Account</h1>
-            <p className="text-lg font-medium text-on-surface-variant">Join KaijuMess in a minute.</p>
+            <h1 className="mb-2 text-4xl font-black tracking-tighter text-on-surface">{t('auth.createAccount')}</h1>
+            <p className="text-lg font-medium text-on-surface-variant">{t('auth.createAccountHint')}</p>
           </div>
         </header>
 
         <main className="relative z-20 min-h-[calc(100vh-371px)] rounded-t-[3rem] bg-surface-container-lowest px-8 pb-12 pt-10 shadow-[0_-12px_40px_rgba(25,28,29,0.04)]">
           <div className="mb-10 flex items-center justify-center space-x-12">
             <Link to="/login" className="px-2 pb-1 text-lg font-semibold text-on-surface-variant transition-colors hover:text-primary">
-              Login
+              {t('auth.login')}
             </Link>
             <span className="relative px-2 pb-1 text-lg font-bold text-on-surface after:absolute after:bottom-[-2px] after:left-0 after:right-0 after:h-[3px] after:rounded-full after:bg-primary">
-              Sign up
+              {t('auth.signUp')}
             </span>
           </div>
 
@@ -248,7 +250,7 @@ const RegisterPage = () => {
 
             <div className="space-y-2">
               <label htmlFor="fullName-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
-                Full Name
+                {t('auth.fullName')}
               </label>
               <div className="relative flex items-center">
                 <span className="material-symbols-outlined absolute left-4 text-outline">person</span>
@@ -271,7 +273,7 @@ const RegisterPage = () => {
 
             <div className="space-y-2">
               <label htmlFor="identity-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
-                Email Address
+                {t('auth.emailAddress')}
               </label>
               <div className="relative flex items-center">
                 <span className="material-symbols-outlined absolute left-4 text-outline">mail</span>
@@ -294,7 +296,7 @@ const RegisterPage = () => {
 
             <div className="space-y-2">
               <label htmlFor="password-mobile" className="ml-1 block text-sm font-semibold text-on-surface-variant">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative flex items-center">
                 <span className="material-symbols-outlined absolute left-4 text-outline">lock</span>
@@ -368,13 +370,13 @@ const RegisterPage = () => {
               className="auth-submit inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-lg font-extrabold text-on-primary transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-75"
             >
               {isSubmitting ? <LoadingOutlined spin /> : null}
-              <span>{isSubmitting ? 'Dang tao tai khoan...' : 'Create account'}</span>
+                <span>{isSubmitting ? 'Dang tao tai khoan...' : t('auth.createAccount')}</span>
               {!isSubmitting ? <span className="material-symbols-outlined">arrow_forward</span> : null}
             </button>
 
             <p className="pt-2 text-center text-sm text-on-surface-variant">
               Already have an account?{' '}
-              <Link to="/login" className="font-bold text-primary">Login</Link>
+              <Link to="/login" className="font-bold text-primary">{t('auth.login')}</Link>
             </p>
           </form>
         </main>
@@ -395,10 +397,10 @@ const RegisterPage = () => {
 
             <div className="space-y-4">
               <h1 className="text-4xl font-extrabold tracking-tight text-on-surface">
-                Gia nhap KaijuMess
+                {t('auth.createAccount')}
               </h1>
               <p className="text-lg leading-relaxed text-on-surface-variant">
-                Tao tai khoan moi de bat dau voi backend auth that va schema chat hien tai.
+                {t('auth.createAccountHint')}
               </p>
             </div>
           </div>
@@ -410,10 +412,10 @@ const RegisterPage = () => {
               KAIJUMESS
             </span>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-on-surface-variant">
-              Dang ky
+              {t('auth.signUp')}
             </p>
             <h2 className="text-3xl font-black tracking-tight text-on-surface md:text-[2.5rem]">
-              Tao tai khoan moi
+              {t('auth.createAccount')}
             </h2>
             <p className="max-w-md text-sm leading-6 text-on-surface-variant">
               Dang ky bang ho ten, email va mat khau. Username se duoc backend tao tu dong cho ban.
@@ -443,7 +445,7 @@ const RegisterPage = () => {
                 htmlFor="fullName"
                 className="ml-1 text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant"
               >
-                Ho va ten
+                {t('auth.fullName')}
               </label>
               <input
                 id="fullName"
@@ -471,7 +473,7 @@ const RegisterPage = () => {
                 htmlFor="identity"
                 className="ml-1 text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant"
               >
-                Email
+                {t('auth.emailAddress')}
               </label>
               <input
                 id="identity"
@@ -499,7 +501,7 @@ const RegisterPage = () => {
                 htmlFor="password"
                 className="ml-1 text-xs font-bold uppercase tracking-[0.24em] text-on-surface-variant"
               >
-                Mat khau
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <input

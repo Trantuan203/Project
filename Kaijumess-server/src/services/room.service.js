@@ -136,6 +136,7 @@ const mapConversation = (room, currentUserId) => {
         lastMessagePreview: buildLastMessagePreview(room),
         messageCount: Number(room.message_count || 0),
         participantCount: Number(room.participant_count || 0),
+        wallpaperId: room.wallpaper_id || '',
         peer: room.peer_id
             ? {
                 avatarUrl: room.peer_avatar_url || '',
@@ -186,6 +187,22 @@ const mapFriendListItem = (user, currentUserId) => ({
     lastCallAt: user.last_call_at,
     lastInteractedAt: user.direct_last_message_at || user.last_call_at || user.last_seen || null,
     lastMessagePreview: user.direct_conversation_id ? 'Open your recent conversation.' : '',
+    lastSeen: user.last_seen,
+    username: user.username || '',
+});
+
+const mapPendingFriendListItem = (user, currentUserId) => ({
+    avatarUrl: user.avatar_url || '',
+    directConversationId: user.direct_conversation_id || '',
+    displayName: user.display_name || user.full_name || user.username || user.email,
+    email: user.email || '',
+    friendship: mapEmbeddedFriendship(user, currentUserId),
+    id: user.id,
+    isOnline: user.status === 'online',
+    lastInteractedAt: user.friendship_created_at || user.last_seen || null,
+    lastMessagePreview: user.friendship_status === 'pending'
+        ? (user.friendship_addressee_id === currentUserId ? 'Sent you a friend request.' : 'Awaiting response.')
+        : '',
     lastSeen: user.last_seen,
     username: user.username || '',
 });
@@ -331,6 +348,103 @@ const updateParticipantNickname = async (userId, conversationId, targetUserId, n
     });
 
     return ensureRoomAccess(userId, conversationId);
+};
+
+const updateConversationWallpaper = async (userId, conversationId, nextWallpaperId) => {
+    await ensureRoomAccess(userId, conversationId);
+
+    const normalizedWallpaperId = typeof nextWallpaperId === 'string' ? nextWallpaperId.trim() : '';
+
+    if (normalizedWallpaperId.length > 80) {
+        const error = new Error('Wallpaper id must be 80 characters or fewer.');
+        error.code = 'INVALID_WALLPAPER_ID';
+        error.field = 'wallpaperId';
+        error.statusCode = 400;
+        throw error;
+    }
+
+    await roomModel.updateConversationWallpaper({
+        conversationId,
+        wallpaperId: normalizedWallpaperId || null,
+    });
+
+    return ensureRoomAccess(userId, conversationId);
+};
+
+const mapPendingFriendInvitation = (row) => ({
+    avatar: row.requester_avatar_url || '',
+    friendshipId: row.id,
+    id: row.id,
+    name:
+        row.requester_display_name ||
+        row.requester_full_name ||
+        row.requester_username ||
+        row.requester_email ||
+        'Unknown user',
+    requestedAt: row.created_at,
+    role: row.requester_email || row.requester_username || 'Friend request',
+    targetUserId: row.requester_id,
+});
+
+const listPendingFriendInvitations = async (userId) => {
+    const rows = await withFriendshipStorage(() => roomModel.listPendingFriendInvitations({ userId }));
+    return rows.map(mapPendingFriendInvitation);
+};
+
+const listPendingFriendRequestsByDirection = async (userId, direction, query = '') => {
+    const rows = await withFriendshipStorage(() =>
+        roomModel.listPendingFriendRequestsByDirection({ direction, query, userId })
+    );
+
+    return rows.map((row) => mapPendingFriendListItem(row, userId));
+};
+
+const listAcceptedFriendshipEvents = async (userId) => {
+    const rows = await withFriendshipStorage(() => roomModel.listAcceptedFriendshipEvents({ userId }));
+
+    return rows.map((row) => ({
+        acceptedAt: row.accepted_at,
+        avatarUrl: row.avatar_url || '',
+        friendshipId: row.id,
+        name: row.display_name || row.full_name || row.username || row.email || 'Unknown user',
+        targetUserId: row.addressee_id,
+    }));
+};
+
+const respondToFriendInvitation = async (userId, friendshipId, action) => {
+    const rows = await withFriendshipStorage(() => roomModel.listPendingFriendInvitations({ userId }));
+    const invitation = rows.find((item) => item.id === friendshipId);
+
+    if (!invitation) {
+        const error = new Error('Friend invitation not found.');
+        error.code = 'FRIEND_INVITATION_NOT_FOUND';
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (action === 'accept') {
+        const friendship = await withFriendshipStorage(() => roomModel.acceptFriendRequest({ friendshipId }));
+        return {
+            friendship: mapFriendshipRow(friendship, userId),
+            invitation: mapPendingFriendInvitation(invitation),
+            status: 'accepted',
+        };
+    }
+
+    if (action === 'ignore') {
+        const friendship = await withFriendshipStorage(() => roomModel.rejectFriendRequest({ friendshipId }));
+        return {
+            friendship: mapFriendshipRow(friendship, userId),
+            invitation: mapPendingFriendInvitation(invitation),
+            status: 'ignored',
+        };
+    }
+
+    const error = new Error('Unsupported invitation action.');
+    error.code = 'INVALID_INVITATION_ACTION';
+    error.field = 'action';
+    error.statusCode = 400;
+    throw error;
 };
 
 const searchAvailableUsers = async (userId, {
@@ -517,8 +631,13 @@ module.exports = {
     ensureRoomAccess,
     listCalls,
     listFriends,
+    listAcceptedFriendshipEvents,
+    listPendingFriendRequestsByDirection,
+    listPendingFriendInvitations,
     listRooms,
     requestFriendship,
+    respondToFriendInvitation,
     searchAvailableUsers,
+    updateConversationWallpaper,
     updateParticipantNickname,
 };

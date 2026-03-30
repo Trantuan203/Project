@@ -75,6 +75,15 @@ const MOBILE_ALBUM_PRESETS = [
   { key: 'wide', label: 'Wide Shots' },
 ];
 const QUICK_REACTION_OPTIONS = ['👍', '😍', '🔥', '😂'];
+const COMPOSER_EMOJI_OPTIONS = ['😀', '😂', '😍', '🥹', '😎', '🤝', '🔥', '🎉', '💙', '🌟', '🚀', '🍀'];
+const COMPOSER_GIFT_OPTIONS = [
+  { icon: '🌹', label: 'Rose' },
+  { icon: '🧸', label: 'Teddy' },
+  { icon: '🎂', label: 'Cake' },
+  { icon: '🎁', label: 'Gift Box' },
+  { icon: '🍫', label: 'Chocolate' },
+  { icon: '💎', label: 'Diamond' },
+];
 
 const autosizeComposerTextarea = (textarea) => {
   if (!textarea) return;
@@ -146,9 +155,12 @@ const ChatWindow = (props) => {
   const [isDraggingMobileSheet, setIsDraggingMobileSheet] = useState(false);
   const [activeQuickReactionMessageId, setActiveQuickReactionMessageId] = useState('');
   const [messageReactions, setMessageReactions] = useState({});
+  const [isComposerPickerOpen, setIsComposerPickerOpen] = useState(false);
+  const [activeComposerPickerTab, setActiveComposerPickerTab] = useState('icons');
   const fileInputRef = useRef(null);
   const mobilePhotoInputRef = useRef(null);
   const mobileComposerTextareaRef = useRef(null);
+  const desktopComposerTextareaRef = useRef(null);
   const mobileSheetDragStartYRef = useRef(0);
   const mobileSheetDragOffsetRef = useRef(0);
   const typingTimeoutRef = useRef(null);
@@ -230,6 +242,8 @@ const ChatWindow = (props) => {
     setIsDraggingMobileSheet(false);
     setActiveQuickReactionMessageId('');
     setMessageReactions({});
+    setIsComposerPickerOpen(false);
+    setActiveComposerPickerTab('icons');
   }, [conversation?.id]);
   useEffect(() => {
     if (!isMobilePhotoPickerOpen) {
@@ -285,11 +299,46 @@ const ChatWindow = (props) => {
     if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
     stopTyping();
   };
+  const focusComposer = () => {
+    const target = isMobileViewport ? mobileComposerTextareaRef.current : desktopComposerTextareaRef.current;
+    target?.focus();
+  };
+  const handleToggleComposerPicker = (tab = 'icons') => {
+    setIsComposerPickerOpen((currentValue) => {
+      const shouldClose = currentValue && activeComposerPickerTab === tab;
+      return !shouldClose;
+    });
+    setActiveComposerPickerTab(tab);
+  };
+  const handlePickComposerEmoji = (emoji) => {
+    const nextDraft = `${draft}${emoji}`;
+    setDraft(nextDraft);
+    setIsComposerPickerOpen(false);
+    requestAnimationFrame(() => {
+      focusComposer();
+      if (mobileComposerTextareaRef.current) {
+        autosizeComposerTextarea(mobileComposerTextareaRef.current);
+      }
+    });
+  };
+  const handlePickComposerGift = (gift) => {
+    const giftText = `${gift.icon} ${gift.label}`;
+    const nextDraft = draft.trim() ? `${draft} ${giftText}` : giftText;
+    setDraft(nextDraft);
+    setIsComposerPickerOpen(false);
+    requestAnimationFrame(() => {
+      focusComposer();
+      if (mobileComposerTextareaRef.current) {
+        autosizeComposerTextarea(mobileComposerTextareaRef.current);
+      }
+    });
+  };
   const handleSubmit = async () => {
     if (!conversation?.id || (!draft.trim() && !pendingMedia)) return;
     const nextPendingMedia = pendingMedia;
     const nextContent = nextPendingMedia ? draft.trim() : draft;
     setDraft('');
+    setIsComposerPickerOpen(false);
     if (mobileComposerTextareaRef.current) {
       mobileComposerTextareaRef.current.style.height = `${MOBILE_COMPOSER_MIN_HEIGHT}px`;
     }
@@ -496,8 +545,8 @@ const ChatWindow = (props) => {
     return <div className="mr-2 mt-1 flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-tight text-on-surface-variant/60">{metaLabel}</span>{message.status === 'sending' ? <span className="material-symbols-outlined text-[14px] text-primary">schedule</span> : <span className="material-symbols-outlined text-[14px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>{message.readAt ? 'done_all' : 'done'}</span>}</div>;
   };
   const conversationWallpaperStyle = useMemo(
-    () => resolveConversationWallpaperStyle(conversationPreferences.chatWallpaperId),
-    [conversationPreferences.chatWallpaperId],
+    () => resolveConversationWallpaperStyle(conversation?.wallpaperId || conversationPreferences.chatWallpaperId),
+    [conversation?.wallpaperId, conversationPreferences.chatWallpaperId],
   );
   if (!conversation) {
     return (
@@ -533,6 +582,15 @@ const ChatWindow = (props) => {
   const mobileComposerShellStyle = {
     paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
   };
+  const composerPickerCard = (
+    <div className="pointer-events-auto mx-auto mb-3 w-full max-w-xl rounded-[24px] border border-white/45 bg-white/90 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.12)] backdrop-blur-2xl">
+      <div className="mb-4 flex rounded-full bg-surface-container-low p-1">
+        <button type="button" onClick={() => setActiveComposerPickerTab('icons')} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${activeComposerPickerTab === 'icons' ? 'bg-white text-on-surface shadow-sm' : 'text-on-surface-variant'}`}>Icons</button>
+        <button type="button" onClick={() => setActiveComposerPickerTab('gifts')} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${activeComposerPickerTab === 'gifts' ? 'bg-white text-on-surface shadow-sm' : 'text-on-surface-variant'}`}>Gifts</button>
+      </div>
+      {activeComposerPickerTab === 'icons' ? <div className="grid grid-cols-6 gap-2 md:grid-cols-8">{COMPOSER_EMOJI_OPTIONS.map((emoji) => <button key={emoji} type="button" onClick={() => handlePickComposerEmoji(emoji)} className="flex h-11 items-center justify-center rounded-2xl bg-surface-container-low text-2xl transition-transform hover:scale-105 active:scale-95">{emoji}</button>)}</div> : <div className="grid grid-cols-2 gap-3 md:grid-cols-3">{COMPOSER_GIFT_OPTIONS.map((gift) => <button key={gift.label} type="button" onClick={() => handlePickComposerGift(gift)} className="flex items-center gap-3 rounded-[20px] bg-surface-container-low px-4 py-3 text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"><span className="text-2xl">{gift.icon}</span><div><p className="text-sm font-bold text-on-surface">{gift.label}</p><p className="text-xs text-on-surface-variant">Tap to send in draft</p></div></button>)}</div>}
+    </div>
+  );
   const renderMessages = (mobile = false) => {
     if (isLoadingMessages) return <div className="max-w-xl rounded-[24px] bg-white/70 p-5 text-sm text-on-surface-variant shadow-sm backdrop-blur-md">Dang tai tin nhan...</div>;
     if (messages.length === 0) return <div className="max-w-xl rounded-[24px] bg-white/70 p-5 text-sm text-on-surface-variant shadow-sm backdrop-blur-md">Chua co tin nhan nao. Gui tin nhan dau tien de mo dau cuoc tro chuyen.</div>;
@@ -582,12 +640,14 @@ const ChatWindow = (props) => {
           </div>
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 px-3 pt-4" style={mobileComposerShellStyle}>
             {pendingMedia ? <div className="pointer-events-auto mx-auto mb-3 max-w-xl rounded-[24px] border border-white/40 bg-white/72 px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.08)] backdrop-blur-2xl"><div className="hide-scrollbar flex gap-3 overflow-x-auto"><div className="relative flex-shrink-0">{pendingMedia.type === 'video' ? <div className="relative h-16 w-16 overflow-hidden rounded-2xl bg-black">{renderMedia(pendingPreview, 'h-full w-full object-cover', true)}<div className="absolute inset-0 flex items-center justify-center bg-black/18"><span className="material-symbols-outlined rounded-full bg-white/90 p-1 text-[14px] text-on-surface">play_arrow</span></div></div> : renderMedia(pendingPreview, 'h-16 w-16 rounded-2xl object-cover', true)}<button type="button" onClick={() => setPendingMedia(null)} className="absolute -right-1 -top-1 rounded-full bg-inverse-surface p-0.5 text-white shadow-sm" aria-label="Remove attachment"><span className="material-symbols-outlined text-[14px]">close</span></button></div><div className="min-w-0 self-center"><p className="truncate text-sm font-semibold text-on-surface">{pendingMedia.fileName}</p><p className="text-xs text-on-surface-variant">Ready to send</p></div></div></div> : null}
+            {isComposerPickerOpen ? composerPickerCard : null}
             <div className="pointer-events-auto mx-auto flex max-w-xl min-w-0 items-center gap-2">
               <button type="button" onClick={handleOpenMobilePhotoPicker} disabled={isComposerBusy} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-xl shadow-primary/30 transition-all duration-200 active:scale-90 disabled:cursor-not-allowed disabled:opacity-60" aria-label="Choose photos"><span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: "'wght' 600" }}>add</span></button>
               <div className="flex min-w-0 flex-1 items-center rounded-[24px] border border-white/50 bg-white/82 px-3 py-1 shadow-[0_14px_32px_rgba(0,0,0,0.1)] backdrop-blur-2xl">
                 <textarea ref={mobileComposerTextareaRef} className="min-h-[40px] min-w-0 max-h-[72px] flex-1 resize-none overflow-y-auto border-none bg-transparent py-2 text-on-surface outline-none placeholder:text-on-surface-variant/50" placeholder="Type a message..." value={draft} onChange={handleDraftChange} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); handleSubmit(); } }} rows={1} style={{ fontSize: `${inputSize}px`, lineHeight: '24px' }} />
                 <div className="flex shrink-0 items-center gap-0.5">
-                  <button type="button" className="shrink-0 p-1.5 text-on-surface-variant transition-colors hover:text-primary" aria-label="Emoji"><span className="material-symbols-outlined text-[22px]">mood</span></button>
+                  <button type="button" onClick={() => handleToggleComposerPicker('icons')} className={`shrink-0 rounded-full p-1.5 transition-colors ${isComposerPickerOpen && activeComposerPickerTab === 'icons' ? 'bg-primary/12 text-primary' : 'text-on-surface-variant hover:text-primary'}`} aria-label="Emoji"><span className="material-symbols-outlined text-[22px]">mood</span></button>
+                  <button type="button" onClick={() => handleToggleComposerPicker('gifts')} className={`shrink-0 rounded-full p-1.5 transition-colors ${isComposerPickerOpen && activeComposerPickerTab === 'gifts' ? 'bg-primary/12 text-primary' : 'text-on-surface-variant hover:text-primary'}`} aria-label="Gifts"><span className="material-symbols-outlined text-[22px]">redeem</span></button>
                   <button type="button" onClick={handlePickMedia} disabled={isComposerBusy} className="shrink-0 p-1.5 text-on-surface-variant transition-colors hover:text-primary disabled:cursor-not-allowed disabled:opacity-60" aria-label="Attach media"><span className="material-symbols-outlined text-[22px]">mic</span></button>
                   <button type="button" onClick={handleSubmit} disabled={isSendDisabled} className="ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/25 transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60" aria-label="Send message"><span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>{isComposerBusy ? 'hourglass_top' : 'send'}</span></button>
                 </div>

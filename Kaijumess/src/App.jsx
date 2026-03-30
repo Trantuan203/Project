@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-d
 import { AppearanceProvider } from './context/AppearanceContext';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationCenterProvider } from './context/NotificationCenterContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
@@ -101,9 +102,11 @@ function App() {
     <AuthProvider>
       <ThemeProvider>
         <AppearanceProvider>
-          <NotificationCenterProvider>
-            <AppRoutes />
-          </NotificationCenterProvider>
+          <LanguageProvider>
+            <NotificationCenterProvider>
+              <AppRoutes />
+            </NotificationCenterProvider>
+          </LanguageProvider>
         </AppearanceProvider>
       </ThemeProvider>
     </AuthProvider>

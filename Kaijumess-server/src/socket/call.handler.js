@@ -5,6 +5,22 @@ const roomService = require('../services/room.service');
 const DEFAULT_ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:openrelay.metered.ca:80' },
+    {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+    },
+    {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+    },
+    {
+        urls: 'turns:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+    },
 ];
 
 const FINAL_CALL_STATUSES = new Set(['busy', 'ended', 'missed', 'rejected']);
@@ -42,7 +58,7 @@ const getIceServers = async () => {
 
         return Array.isArray(data) && data.length > 0 ? data : DEFAULT_ICE_SERVERS;
     } catch (error) {
-        console.warn('Metered ICE lookup failed. Falling back to public STUN.', error.message || error);
+        console.warn('Metered ICE lookup failed. Falling back to public ICE.', error.message || error);
         return DEFAULT_ICE_SERVERS;
     }
 };

@@ -102,6 +102,23 @@ const createFriendRequest = async (req, res) => {
     }
 };
 
+const listPendingFriendRequests = async (req, res) => {
+    try {
+        const users = await roomService.listPendingFriendRequestsByDirection(
+            req.user.sub,
+            req.query.direction || 'incoming',
+            req.query.q || '',
+        );
+        return res.status(200).json({ users });
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({
+            code: error.code,
+            field: error.field,
+            message: error.message || 'Internal server error.',
+        });
+    }
+};
+
 const updateParticipantNickname = async (req, res) => {
     try {
         const room = await roomService.updateParticipantNickname(
@@ -134,12 +151,45 @@ const updateParticipantNickname = async (req, res) => {
     }
 };
 
+const updateConversationWallpaper = async (req, res) => {
+    try {
+        const room = await roomService.updateConversationWallpaper(
+            req.user.sub,
+            req.params.conversationId,
+            req.body?.wallpaperId,
+        );
+
+        const io = req.app.get('io');
+
+        if (io && room?.id) {
+            const participantUserIds = [req.user.sub, room.peer?.id].filter(Boolean);
+
+            await Promise.allSettled(
+                participantUserIds.map(async (participantUserId) => {
+                    const snapshot = await roomService.ensureRoomAccess(participantUserId, room.id);
+                    io.to(`user:${participantUserId}`).emit('conversation:updated', snapshot);
+                })
+            );
+        }
+
+        return res.status(200).json({ room });
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({
+            code: error.code,
+            field: error.field,
+            message: error.message || 'Internal server error.',
+        });
+    }
+};
+
 module.exports = {
     createDirectRoom,
     createFriendRequest,
     listCalls,
     listFriends,
+    listPendingFriendRequests,
     listRooms,
     searchUsers,
+    updateConversationWallpaper,
     updateParticipantNickname,
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BellOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons';
+import { BellOutlined, SearchOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 
 import CallsView from '../components/call/CallsView';
@@ -10,6 +10,7 @@ import MobileContactDetails from '../components/mobile/MobileContactDetails';
 import NotificationCenterView from '../components/notifications/NotificationCenterView';
 import SettingsView from '../components/Setting/SettingsView';
 import ConversationList from '../components/sidebar/ConversationList';
+import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../hooks/useAuth';
 import useCall from '../hooks/useCall';
 import { useMessages } from '../hooks/useMessages';
@@ -18,6 +19,7 @@ import useSocket from '../hooks/useSocket';
 
 const ChatPage = () => {
   const [showDetails, setShowDetails] = useState(false);
+  const { t } = useLanguage();
   const [isMobileConversationOpen, setIsMobileConversationOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === 'undefined') {
@@ -50,6 +52,7 @@ const ChatPage = () => {
     handleOpenPeoplePanel,
     handleSendFriendRequest,
     handleSendMessage,
+    handleUpdateConversationWallpaper,
     handleUpdateParticipantNickname,
     handleStartDirectRoom,
     handleTypingStart,
@@ -60,13 +63,16 @@ const ChatPage = () => {
     isPeoplePanelOpen,
     isSearchingPeople,
     isSendingMessage,
+    isUpdatingConversationWallpaper,
     isUpdatingParticipantNickname,
     notice,
     peoplePanelState,
+    peopleFilter,
     peopleSearchQuery,
     remoteTypingUserId,
     selectConversation,
     setConversationSearch,
+    setPeopleFilter,
     setPeopleSearchQuery,
   } = useMessages(currentUser);
   const userInitial = currentUser?.fullName?.charAt(0)?.toUpperCase() ?? 'K';
@@ -199,9 +205,9 @@ const ChatPage = () => {
   };
 
   const headerSubtitle = isSettingsView
-    ? 'Settings'
+    ? t('settings.settings')
     : isNotificationsView
-      ? 'Notifications'
+      ? t('notifications.title')
       : currentUser?.fullName;
 
   const { emitTypingStart, emitTypingStop } = useSocket({
@@ -254,7 +260,7 @@ const ChatPage = () => {
               type="button"
               onClick={handleOpenPeoplePanel}
               className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-              aria-label="Tim kiem"
+              aria-label={t('app.search')}
             >
               <SearchOutlined />
             </button>
@@ -267,7 +273,7 @@ const ChatPage = () => {
                   ? 'bg-primary/10 text-primary'
                   : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
-              aria-label="Thong bao"
+              aria-label={t('app.notifications')}
             >
               <BellOutlined />
               {unreadCount > 0 ? (
@@ -277,14 +283,6 @@ const ChatPage = () => {
               ) : null}
             </button>
 
-            <button
-              type="button"
-              onClick={handleToggleSettings}
-              className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-              aria-label="Cai dat"
-            >
-              <SettingOutlined />
-            </button>
           </div>
         </header>
       ) : null}
@@ -300,7 +298,7 @@ const ChatPage = () => {
             onLogout={logout}
           />
         ) : isNotificationsView ? (
-          <NotificationCenterView />
+          <NotificationCenterView onClose={() => updateViewParams('chat')} />
         ) : (
           <>
             {shouldShowConversationList ? (
@@ -331,7 +329,9 @@ const ChatPage = () => {
                 onStartDirectRoom={handleStartDirectConversation}
                 onUserSearchChange={setPeopleSearchQuery}
                 peoplePanelState={peoplePanelState}
+                peopleFilter={peopleFilter}
                 peopleSearchQuery={peopleSearchQuery}
+                onPeopleFilterChange={setPeopleFilter}
                 unreadCount={unreadCount}
               />
             ) : null}
@@ -370,6 +370,7 @@ const ChatPage = () => {
                     <MobileContactDetails
                       conversation={activeConversation}
                       currentUser={currentUser}
+                      isUpdatingConversationWallpaper={isUpdatingConversationWallpaper}
                       isUpdatingParticipantNickname={isUpdatingParticipantNickname}
                       messages={activeMessages}
                       onBack={() => setShowDetails(false)}
@@ -377,6 +378,7 @@ const ChatPage = () => {
                       onOpenChats={handleOpenChats}
                       onOpenPeople={handleOpenPeople}
                       onOpenSettings={handleToggleSettings}
+                      onUpdateConversationWallpaper={handleUpdateConversationWallpaper}
                       onUpdateParticipantNickname={handleUpdateParticipantNickname}
                       onStartAudioCall={startAudioCall}
                       onStartVideoCall={startVideoCall}

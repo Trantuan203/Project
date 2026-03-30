@@ -14,6 +14,7 @@ import {
   WarningOutlined,
 } from '@ant-design/icons';
 
+import { useLanguage } from '../../context/LanguageContext';
 import { useAppearance } from '../../hooks/useAppearance';
 
 const fallbackMedia = [
@@ -84,6 +85,7 @@ const buildHandle = (currentUser) => {
 
 const Profile = ({ currentUser }) => {
   const { fontScale, wallpaperLabel } = useAppearance();
+  const { t } = useLanguage();
   const [notice, setNotice] = useState(null);
 
   const profileName = currentUser?.fullName || currentUser?.displayName || 'Kaiju User';
@@ -176,7 +178,7 @@ const Profile = ({ currentUser }) => {
             </div>
 
             <div className="rounded-full border border-outline-variant/20 bg-surface-container-lowest/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant shadow-sm backdrop-blur">
-              Wallpaper {wallpaperLabel} • Font {fontScale}px
+              {t('settings.chatWallpaper')} {wallpaperLabel} • {t('settings.fontSize')} {fontScale}px
             </div>
           </div>
         </section>
@@ -185,7 +187,7 @@ const Profile = ({ currentUser }) => {
           <div className="space-y-6">
             <section className="rounded-[28px] bg-surface-container-lowest p-8 shadow-sm">
               <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-on-surface-variant">
-                Bio
+                {t('settings.profileBio')}
               </h3>
               <p className="text-lg leading-8 text-on-surface">
                 Passionate about crafting fluid digital experiences that bridge the gap between
@@ -213,7 +215,7 @@ const Profile = ({ currentUser }) => {
           <aside className="space-y-6">
             <div className="rounded-[28px] bg-primary p-6 text-on-primary shadow-lg shadow-primary/20">
               <h4 className="mb-4 text-xs font-bold uppercase tracking-[0.22em] opacity-80">
-                Network
+                {t('settings.network')}
               </h4>
 
               <div className="flex items-end justify-between">
@@ -251,7 +253,7 @@ const Profile = ({ currentUser }) => {
               className="flex w-full items-center justify-center gap-2 rounded-[20px] bg-surface-container-highest px-4 py-4 text-sm font-bold text-on-surface transition-colors hover:bg-surface-variant"
             >
               <MessageOutlined />
-              Send Message
+              {t('settings.sendMessage')}
             </button>
 
             <button

@@ -34,12 +34,14 @@ const getMessageMedia = (message) => {
 const MobileContactDetails = ({
   conversation,
   currentUser,
+  isUpdatingConversationWallpaper = false,
   isUpdatingParticipantNickname = false,
   messages = [],
   onBack,
   onOpenCalls,
   onOpenChats,
   onOpenPeople,
+  onUpdateConversationWallpaper,
   onUpdateParticipantNickname,
   onOpenSettings,
   onStartAudioCall,
@@ -559,19 +561,27 @@ const MobileContactDetails = ({
 
               <div className="grid grid-cols-2 gap-3">
                 {wallpaperOptions.map((wallpaper) => {
-                  const isSelected = preferences.chatWallpaperId === wallpaper.id;
+                  const isSelected = (conversation.wallpaperId || DEFAULT_CONVERSATION_WALLPAPER_ID) === wallpaper.id;
 
                   return (
                     <button
                       key={wallpaper.id}
                       type="button"
-                      onClick={() =>
-                        updatePreference(
-                          'chatWallpaperId',
-                          wallpaper.id,
-                          `Chat background switched to ${wallpaper.label}.`,
-                        )
-                      }
+                      onClick={async () => {
+                        const room = await onUpdateConversationWallpaper?.({
+                          conversationId: conversation.id,
+                          wallpaperId:
+                            wallpaper.id === DEFAULT_CONVERSATION_WALLPAPER_ID ? '' : wallpaper.id,
+                        });
+
+                        if (room?.id) {
+                          setNotice({
+                            message: `Chat background switched to ${wallpaper.label}.`,
+                            type: 'success',
+                          });
+                        }
+                      }}
+                      disabled={isUpdatingConversationWallpaper}
                       className={`overflow-hidden rounded-[20px] border text-left transition-all active:scale-[0.98] ${
                         isSelected
                           ? 'border-primary shadow-[0_12px_24px_rgba(0,88,188,0.14)]'
@@ -624,8 +634,8 @@ const MobileContactDetails = ({
                     'encrypted',
                     !preferences.encrypted,
                     `Encryption indicator ${preferences.encrypted ? 'disabled' : 'enabled'} for this thread view.`,
-                  )
-                }
+                        )
+                      }
                 aria-pressed={preferences.encrypted}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   preferences.encrypted ? 'bg-primary' : 'bg-surface-container-highest'
